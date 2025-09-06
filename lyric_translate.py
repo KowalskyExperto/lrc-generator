@@ -3,6 +3,7 @@ import google.generativeai as genai
 from dotenv import load_dotenv
 from pandas import DataFrame
 from pykakasi import kakasi
+import argparse
 
 
 load_dotenv()
@@ -108,12 +109,11 @@ def guardar_en_xlsx(dataframe: DataFrame, nombre_archivo: str):
     dataframe.to_excel(nombre_archivo, index=False, header=True)
     print(f"La traducción ha sido guardada en '{nombre_archivo}' con éxito.")
 
-def join_jap_eng(lyr_jap: list, lyr_eng: list) -> str:
-    lyrics_jap_eng: str = ''
-    for i in range(len(lyr_jap)):
-        combined_line: str = lyr_jap[i] + '\t' + lyr_eng[i]
-        lyrics_jap_eng = lyrics_jap_eng + '\n' + combined_line
-    return lyrics_jap_eng
+def join_jap_eng(lyrics_jap: list, lyrics_eng: list) -> str:
+    """Combina las letras en japonés e inglés línea por línea para el prompt de revisión."""
+    # Usar zip y un list comprehension es más eficiente y Pythonico.
+    combined_lines = [f"{jap}\t{eng}" for jap, eng in zip(lyrics_jap, lyrics_eng)]
+    return "\n".join(combined_lines)
 
 # Crea una función principal para el flujo de trabajo
 def procesar_cancion(letra_completa, file_output):
@@ -156,60 +156,31 @@ def subir_a_google_sheets_oficial(file_name,file,id_folder):
     file_drive.Upload({"convert": True})
     print(f'Link: {file_drive['alternateLink']}')
 
-# Llama a la función principal
-lyrics_jap_full = """
-あなたが生まれた
-事について僕は言う
-犠牲と後悔泣き声に
-かき消されてるの？
-遠くなる
-心へと
-吐き捨てた
+def read_lyrics_file(filepath: str) -> str:
+    """Lee el contenido de un archivo de texto."""
+    print(f"Leyendo letra desde '{filepath}'...")
+    with open(filepath, 'r', encoding='utf-8') as f:
+        return f.read()
 
-形は無い答えは無い
-僕は知ったこっちゃ無い
-繊細な絹糸に
-黒い雫落ちる
-泣き顔に突きつけた
-皮肉と優しさが
-ただ零れ落ちた
-此処にあった
-喪失感
+def main():
+    """Función principal para ejecutar el flujo de traducción de letras."""
+    parser = argparse.ArgumentParser(description="Traducir y procesar letras de canciones en japonés.")
+    parser.add_argument("lyrics_file", help="Ruta al archivo de texto con la letra en japonés.")
+    parser.add_argument("song_name", help="Nombre de la canción para usar en el archivo de salida.")
+    parser.add_argument("-o", "--output", default=None, help="Nombre base del archivo de salida (sin extensión). Por defecto, usa el nombre de la canción.")
+    args = parser.parse_args()
 
-あなたが選んだ
-世界について僕は言う
-暗くて霞んだ目の前の
-景色はどう見える？
-帰りたい
-それだけは許されない
+    output_filename = args.output if args.output else args.song_name
+    excel_filename = f'{output_filename}.xlsx'
 
-言葉からあふれ出た
-偽りの幸せ
-泣き出した幸福感
-赤く染まる涙
-粉々に砕かれる
-方がまだ美しい
-ただ求め合った
-そこにあった
-喪失感
+    # Leer la letra desde el archivo proporcionado
+    lyrics_jap_full = read_lyrics_file(args.lyrics_file)
 
-僕は泣いた
-泣き疲れた
-何か消えた
+    # Procesar la canción
+    procesar_cancion(lyrics_jap_full, output_filename)
 
-形は無い答えは無い
-僕は知ったこっちゃ無い
-繊細な絹糸に
-黒い雫落ちる
-泣き顔に突きつけた
-皮肉と優しさが
-ただ零れ落ちた
-ここにあった
-喪失感
-"""
+    # Subir el archivo resultante a Google Drive
+    subir_a_google_sheets_oficial(excel_filename, args.song_name, id_folder)
 
-song_name:str = 'Yuyoyuppe - For a Dead Girl+'
-file_name = f'{song_name}'
-procesar_cancion(lyrics_jap_full, file_name)
-subir_a_google_sheets_oficial(f'{file_name}.xlsx',song_name,id_folder)
-
+if __name__ == "__main__":
+    main()
