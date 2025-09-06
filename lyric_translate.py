@@ -97,16 +97,9 @@ def generate_df(lyrics_jap: list, lyrics_rom: list, lyrics_eng: list, lyrics_eng
 
 def guardar_en_csv(dataframe: DataFrame, nombre_archivo: str):
     """
-    Guarda un DataFrame de pandas en un archivo de Excel.
+    Guarda un DataFrame de pandas en un archivo CSV.
     """
-    dataframe.to_csv(nombre_archivo, index=False, header=True, sep='|')
-    print(f"La traducción ha sido guardada en '{nombre_archivo}' con éxito.")
-
-def guardar_en_xlsx(dataframe: DataFrame, nombre_archivo: str):
-    """
-    Guarda un DataFrame de pandas en un archivo de Excel.
-    """
-    dataframe.to_excel(nombre_archivo, index=False, header=True)
+    dataframe.to_csv(nombre_archivo, index=False, header=True, encoding='utf-8')
     print(f"La traducción ha sido guardada en '{nombre_archivo}' con éxito.")
 
 def join_jap_eng(lyrics_jap: list, lyrics_eng: list) -> str:
@@ -139,9 +132,8 @@ def procesar_cancion(letra_completa, file_output):
     print('Generando parquet')
     df_lyrics = generate_df(lyrics_jap, lyrics_rom, lyrics_eng, lyrics_eng_improved)
     print('Generando CSV')
-    # guardar_en_csv(df_lyrics, f'{file_output}.csv')
-    # print("Proceso completo y guardado en archivo CSV.")
-    guardar_en_xlsx(df_lyrics,f'{file_output}.xlsx')
+    guardar_en_csv(df_lyrics, file_output)
+    print("Proceso completo y guardado en archivo CSV.")
 
 def subir_a_google_sheets_oficial(file_name,file,id_folder):
     print("Creando Archivo Google")
@@ -171,16 +163,16 @@ def main():
     args = parser.parse_args()
 
     output_filename = args.output if args.output else args.song_name
-    excel_filename = f'{output_filename}.xlsx'
+    csv_filename = f'{output_filename}.csv'
 
     # Leer la letra desde el archivo proporcionado
     lyrics_jap_full = read_lyrics_file(args.lyrics_file)
 
     # Procesar la canción
-    procesar_cancion(lyrics_jap_full, output_filename)
+    procesar_cancion(lyrics_jap_full, csv_filename)
 
     # Subir el archivo resultante a Google Drive
-    subir_a_google_sheets_oficial(excel_filename, args.song_name, id_folder)
+    subir_a_google_sheets_oficial(csv_filename, args.song_name, id_folder)
 
 if __name__ == "__main__":
     main()
