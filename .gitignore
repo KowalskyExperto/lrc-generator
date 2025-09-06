@@ -23,3 +23,5 @@ demo.json
 final.json
 *.xlsx
 *.csv
+*.flac
+*.txt
