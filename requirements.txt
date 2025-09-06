@@ -1,0 +1,7 @@
+stable-ts
+google-generativeai
+python-dotenv
+pandas
+pykakasi
+PyDrive2
+openpyxl
