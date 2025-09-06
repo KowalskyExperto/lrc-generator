@@ -10,169 +10,170 @@ load_dotenv()
 api_key_genai=os.getenv('API_KEY_GENAI')
 id_folder=os.getenv('ID_FOLDER')
 
-# Configura tu clave de API de Gemini
+# Configure your Gemini API key
 genai.configure(api_key=api_key_genai)
 
 from pydrive2.auth import GoogleAuth
 from pydrive2.drive import GoogleDrive
 
 gauth = GoogleAuth()
+# This will open a web browser for authentication the first time.
+# It will save credentials to a file for subsequent runs.
 gauth.LocalWebserverAuth()
 
 drive = GoogleDrive(gauth)
 
-def convertir_a_romaji(texto_japones: list) -> list:
+def convert_to_romaji(japanese_text: list) -> list:
+    """Converts a list of Japanese strings to Romaji."""
     kks = kakasi()
-    # Se puede convertir cada línea de la lista de forma más limpia
-    return [' '.join(word['hepburn'] for word in kks.convert(linea)) for linea in texto_japones]
+    # Convert each line in the list more cleanly
+    return [' '.join(word['hepburn'] for word in kks.convert(line)) for line in japanese_text]
 
 
-def traducir_letra(letra_japones) -> list:
+def translate_lyrics(japanese_lyrics: str) -> list:
     """
-    Obtiene la traducción en inglés de Gemini y la combina con el romaji generado.
+    Gets the English translation from Gemini.
     """
-    model = genai.GenerativeModel('gemini-2.5-flash')
+    model = genai.GenerativeModel('gemini-1.5-flash')
 
     prompt = f"""
-A continuación, se presenta una letra de canción en japonés.
-Tu tarea es hacer la traducción en inglés y determinar si es precisa y, sobre todo, si captura el sentimiento y el contexto de la letra original.
-Mantén el formato de cada línea y los saltos de línea originales. 
-Proporciona solo la traducción, sin ningún texto adicional o explicaciones.
+Below are song lyrics in Japanese.
+Your task is to provide an English translation. Ensure it is accurate and, most importantly, captures the feeling and context of the original lyrics.
+Maintain the original line-by-line format and line breaks.
+Provide only the translation, without any additional text or explanations.
 
-Letra en japonés:
+Japanese Lyrics:
 ---
-{letra_japones}
+{japanese_lyrics}
 ---
     """
 
     response = model.generate_content(prompt)
-    texto_traducido = response.text.strip()
-    # 3. Combinar los resultados en un DataFrame
-    lineas_ingles = texto_traducido.strip().split('\n')
-    return lineas_ingles
+    translated_text = response.text.strip()
+    english_lines = translated_text.strip().split('\n')
+    return english_lines
 
 
-def revisar_y_mejorar_traduccion(letra) -> list:
+def review_and_improve_translation(lyrics_to_review: str) -> list:
     """
-    Revisa y mejora una traducción de canción de japonés a inglés.
+    Reviews and improves a Japanese-to-English song translation.
     """
-    model = genai.GenerativeModel('gemini-2.5-flash')
+    model = genai.GenerativeModel('gemini-1.5-flash')
 
     prompt = f"""
-A continuación, se presenta una letra de canción en japonés, y una traducción al inglés.
-Tu tarea es analizar la traducción en inglés y determinar si es precisa y, sobre todo, si captura el sentimiento y el contexto de la letra original.
+Below are song lyrics in Japanese, along with an English translation.
+Your task is to analyze the English translation to determine if it is accurate and, most importantly, if it captures the feeling and context of the original lyrics.
 
-Si la traducción es literal, propón una versión mejorada que suene más natural para un hablante de inglés y que transmita la emoción de la canción.
+If the translation is too literal, propose an improved version that sounds more natural to an English speaker and conveys the song's emotion.
 
+Maintain the original line-by-line format and line breaks.
+Only the improved translation is required; omit the Japanese.
+Provide only the improvement, without any additional text or explanations.
+The same number of lines must be maintained.
 
-Mantén el formato de cada línea y los saltos de línea originales. 
-Solo se requiere la traduccion mejorada, el japones omitelo.
-Proporciona solo la mejora, sin ningún texto adicional o explicaciones.
-Se debe de mantener la misma cantidad de lineas
-Letra a revisar:
+Lyrics to review:
 ---
-{letra}
+{lyrics_to_review}
 ---
 """
     response = model.generate_content(prompt)
-    texto_traducido = response.text.strip()
-    # 3. Combinar los resultados en un DataFrame
-    lineas_ingles = texto_traducido.strip().split('\n')
-    return lineas_ingles
+    translated_text = response.text.strip()
+    english_lines = translated_text.strip().split('\n')
+    return english_lines
 
 
-def generate_df(lyrics_jap: list, lyrics_rom: list, lyrics_eng: list, lyrics_eng_improved: list) -> DataFrame:
-    datos = []
-    # Asegurarse de que las listas tengan la misma longitud
-    for i in range(len(lyrics_jap)):
-        japones = lyrics_jap[i].strip()
-        romaji = lyrics_rom[i].strip()
-        ingles = lyrics_eng[i].strip() if i < len(lyrics_eng) else ""
-        english_impr = lyrics_eng_improved[i].strip() if i < len(lyrics_eng) else ""
-        datos.append([japones, romaji, ingles, english_impr])
+def create_dataframe(lyrics_jap: list, lyrics_rom: list, lyrics_eng: list, lyrics_eng_improved: list) -> DataFrame:
+    """Creates a pandas DataFrame from the lyric lists."""
+    data = []
+    # Ensure all lists have the same length for zipping
+    max_len = len(lyrics_jap)
+    for i in range(max_len):
+        japanese = lyrics_jap[i].strip()
+        romaji = lyrics_rom[i].strip() if i < len(lyrics_rom) else ""
+        english = lyrics_eng[i].strip() if i < len(lyrics_eng) else ""
+        english_improved = lyrics_eng_improved[i].strip() if i < len(lyrics_eng_improved) else ""
+        data.append([japanese, romaji, english, english_improved])
 
-    df = DataFrame(datos, columns=['Japonés', 'Romaji', 'Inglés', 'Ingles Mejorado'])
+    df = DataFrame(data, columns=['Japanese', 'Romaji', 'English', 'Improved English'])
     return df
 
 
-def guardar_en_csv(dataframe: DataFrame, nombre_archivo: str):
+def save_to_csv(dataframe: DataFrame, filename: str):
     """
-    Guarda un DataFrame de pandas en un archivo CSV.
+    Saves a pandas DataFrame to a CSV file.
     """
-    dataframe.to_csv(nombre_archivo, index=False, header=True, encoding='utf-8')
-    print(f"La traducción ha sido guardada en '{nombre_archivo}' con éxito.")
+    dataframe.to_csv(filename, index=False, header=True, encoding='utf-8')
+    print(f"The translation has been successfully saved to '{filename}'.")
 
-def join_jap_eng(lyrics_jap: list, lyrics_eng: list) -> str:
-    """Combina las letras en japonés e inglés línea por línea para el prompt de revisión."""
-    # Usar zip y un list comprehension es más eficiente y Pythonico.
+def combine_jap_eng_for_prompt(lyrics_jap: list, lyrics_eng: list) -> str:
+    """Combines the Japanese and English lyrics line-by-line for the review prompt."""
+    # Using zip and a list comprehension is more efficient and Pythonic.
     combined_lines = [f"{jap}\t{eng}" for jap, eng in zip(lyrics_jap, lyrics_eng)]
     return "\n".join(combined_lines)
 
-# Crea una función principal para el flujo de trabajo
-def procesar_cancion(letra_completa, file_output):
-    # Paso 1: Obtener japonés y romaji
-    lyrics_jap = letra_completa.strip().split('\n')
-    print('Convirtiendo a Romaji')
-    lyrics_rom = convertir_a_romaji(lyrics_jap)
+# Main workflow function
+def process_song(full_lyrics: str, output_filepath: str):
+    # Step 1: Get Japanese and Romaji
+    lyrics_jap = full_lyrics.strip().split('\n')
+    print('Converting to Romaji...')
+    lyrics_rom = convert_to_romaji(lyrics_jap)
 
-    # Paso 2: Obtener traducción inicial
-    print('Traduciendo cancion al ingles')
-    lyrics_eng = traducir_letra(letra_completa)
-    print(lyrics_eng)
+    # Step 2: Get initial translation
+    print('Translating song to English...')
+    lyrics_eng = translate_lyrics(full_lyrics)
     
-    # Paso 3: Combinar japonés e inglés para la mejora
-    pre_lyrics_jap_eng = join_jap_eng(lyrics_jap, lyrics_eng)
+    # Step 3: Combine Japanese and English for the improvement prompt
+    lyrics_to_review = combine_jap_eng_for_prompt(lyrics_jap, lyrics_eng)
 
-    # Paso 4: Obtener traducción mejorada
-    print('Mejorando traduccion')
-    lyrics_eng_improved = revisar_y_mejorar_traduccion(pre_lyrics_jap_eng)
-    print(lyrics_eng_improved)
+    # Step 4: Get improved translation
+    print('Improving translation...')
+    lyrics_eng_improved = review_and_improve_translation(lyrics_to_review)
 
-    # Paso 5: Generar y guardar el DataFrame
-    print('Generando parquet')
-    df_lyrics = generate_df(lyrics_jap, lyrics_rom, lyrics_eng, lyrics_eng_improved)
-    print('Generando CSV')
-    guardar_en_csv(df_lyrics, file_output)
-    print("Proceso completo y guardado en archivo CSV.")
+    # Step 5: Generate and save the DataFrame
+    print('Generating DataFrame...')
+    df_lyrics = create_dataframe(lyrics_jap, lyrics_rom, lyrics_eng, lyrics_eng_improved)
+    print('Generating CSV...')
+    save_to_csv(df_lyrics, output_filepath)
+    print("Process complete and saved to CSV file.")
 
-def subir_a_google_sheets_oficial(file_name,file,id_folder):
-    print("Creando Archivo Google")
+def upload_to_google_drive(local_filepath: str, drive_filename: str, folder_id: str):
+    """Uploads a file to a specific Google Drive folder and converts it."""
+    print("Creating Google Drive file...")
     file_drive = drive.CreateFile({
-        'title':file,
-        # 'mimeType': 'application/vnd.google-apps.spreadsheet',
-        'parents': [{"id": id_folder}]
+        'title': drive_filename,
+        'parents': [{"id": folder_id}]
     })
-    print("Cargando informacion")
-    file_drive.SetContentFile(file_name)
-    print("Subiendo archivo")
-    file_drive.Upload({"convert": True})
-    print(f'Link: {file_drive['alternateLink']}')
+    print("Setting content...")
+    file_drive.SetContentFile(local_filepath)
+    print("Uploading file...")
+    file_drive.Upload({"convert": True}) # convert=True will turn CSV into a Google Sheet
+    print(f"Upload complete. Link: {file_drive['alternateLink']}")
 
 def read_lyrics_file(filepath: str) -> str:
-    """Lee el contenido de un archivo de texto."""
-    print(f"Leyendo letra desde '{filepath}'...")
+    """Reads the content of a text file."""
+    print(f"Reading lyrics from '{filepath}'...")
     with open(filepath, 'r', encoding='utf-8') as f:
         return f.read()
 
 def main():
-    """Función principal para ejecutar el flujo de traducción de letras."""
-    parser = argparse.ArgumentParser(description="Traducir y procesar letras de canciones en japonés.")
-    parser.add_argument("lyrics_file", help="Ruta al archivo de texto con la letra en japonés.")
-    parser.add_argument("song_name", help="Nombre de la canción para usar en el archivo de salida.")
-    parser.add_argument("-o", "--output", default=None, help="Nombre base del archivo de salida (sin extensión). Por defecto, usa el nombre de la canción.")
+    """Main function to run the lyric translation workflow."""
+    parser = argparse.ArgumentParser(description="Translate and process Japanese song lyrics.")
+    parser.add_argument("lyrics_file", help="Path to the text file with the Japanese lyrics.")
+    parser.add_argument("song_name", help="Name of the song to use for the output file.")
+    parser.add_argument("-o", "--output", default=None, help="Base name for the output file (without extension). Defaults to the song name.")
     args = parser.parse_args()
 
-    output_filename = args.output if args.output else args.song_name
-    csv_filename = f'{output_filename}.csv'
+    output_filename_base = args.output if args.output else args.song_name
+    csv_filename = f'{output_filename_base}.csv'
 
-    # Leer la letra desde el archivo proporcionado
+    # Read the lyrics from the provided file
     lyrics_jap_full = read_lyrics_file(args.lyrics_file)
 
-    # Procesar la canción
-    procesar_cancion(lyrics_jap_full, csv_filename)
+    # Process the song
+    process_song(lyrics_jap_full, csv_filename)
 
-    # Subir el archivo resultante a Google Drive
-    subir_a_google_sheets_oficial(csv_filename, args.song_name, id_folder)
+    # Upload the resulting file to Google Drive
+    upload_to_google_drive(csv_filename, args.song_name, id_folder)
 
 if __name__ == "__main__":
     main()

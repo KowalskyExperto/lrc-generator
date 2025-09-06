@@ -3,17 +3,17 @@ from typing import List, Dict, Any
 from pandas import DataFrame
 import argparse
 
-# --- Constantes ---
+# --- Constants ---
 DEFAULT_MODEL_NAME = "base"
 
-# --- Funciones ---
+# --- Functions ---
 
 
 def load_model(model_name: str) -> Any:
-    """Carga un modelo de Stable Whisper."""
-    print(f"Cargando el modelo '{model_name}'...")
+    """Loads a Stable Whisper model."""
+    print(f"Loading model '{model_name}'...")
     model = stable_whisper.load_model(model_name)
-    print("Modelo cargado.")
+    print("Model loaded.")
     return model
 
 
@@ -24,17 +24,17 @@ def align_lyrics(
     language: str
 ) -> stable_whisper.WhisperResult:
     """
-    Alinea el audio con la letra proporcionada usando Stable Whisper.
-    Realiza un paso de refinamiento para mejorar la precisión.
+    Aligns audio with the provided lyrics using Stable Whisper.
+    Performs a refinement step to improve accuracy.
     """
-    print(f"Alineando el audio '{audio_path}' con la letra...")
-    # Primera pasada de alineación
+    print(f"Aligning audio '{audio_path}' with lyrics...")
+    # First alignment pass
     result = model.align(audio_path, lyrics,
                          language=language, suppress_silence=True)
-    # Segunda pasada para refinar los timestamps
+    # Second pass to refine timestamps
     result = model.align(audio_path, result,
                          language=language, suppress_silence=True)
-    print("Alineación completada.")
+    print("Alignment complete.")
     return result
 
 
@@ -43,10 +43,10 @@ def generate_line_timestamps(
     word_timestamps: List[Dict[str, Any]]
 ) -> List[Dict[str, Any]]:
     """
-    Genera timestamps de inicio y fin para cada línea de la letra, basándose en los
-    timestamps de las palabras individuales.
+    Generates start and end timestamps for each line of the lyrics, based on
+    the timestamps of individual words.
     """
-    print("Generando timestamps por línea...")
+    print("Generating line timestamps...")
     final_result: List[Dict[str, Any]] = []
     word_idx = 0
     previous_end_time = 0.0
@@ -54,7 +54,7 @@ def generate_line_timestamps(
     for original_line in lyrics_lines:
         line = original_line.strip()
         if not line:
-            # Para líneas vacías, usamos el tiempo final de la línea anterior.
+            # For empty lines, use the end time of the previous line.
             final_result.append({
                 'linea': '', # Keep empty lines for structure
                 'start': previous_end_time,
@@ -93,11 +93,11 @@ def generate_line_timestamps(
             word_idx = temp_word_idx # Update main index
         except (IndexError, KeyError):
             print(
-                f"Error: La lista de tiempos de palabras no coincide con la letra. Fallo en la línea: '{line}'")
-            print(f"Se procesaron {len(final_result)} líneas exitosamente.")
+                f"Error: The word timestamps list does not match the lyrics. Failed at line: '{line}'")
+            print(f"Successfully processed {len(final_result)} lines.")
             break
 
-    print("Timestamps por línea generados.")
+    print("Line timestamps generated.")
     return final_result
 
 
@@ -105,11 +105,10 @@ def add_detailed_timestamps(
     line_data: List[Dict[str, Any]]
 ) -> List[Dict[str, Any]]:
     """
-    Agrega minutos, segundos y milisegundos desglosados a cada
-    diccionario de línea basado en el tiempo 'start' y elimina las claves
-    'start' y 'end' originales. Los valores de tiempo se formatean como
-    strings con ceros a la izquierda para cumplir con el formato LRC. Devuelve
-    una nueva lista.
+    Adds detailed minutes, seconds, and milliseconds to each line dictionary
+    based on the 'start' time and removes the original 'start' and 'end' keys.
+    The time values are formatted as zero-padded strings to comply with the LRC
+    format. Returns a new list.
     """
     processed_data = []
     for item in line_data:
@@ -122,10 +121,10 @@ def add_detailed_timestamps(
             seconds = int(remaining_seconds)
             milliseconds = int(round((remaining_seconds - seconds) * 1000))
 
-            # Formatear como strings con ceros a la izquierda (ej: 01, 07, 050)
+            # Format as zero-padded strings (e.g., 01, 07, 050)
             new_item.update({'minutes': f"{minutes:02d}", 'seconds': f"{seconds:02d}", 'milliseconds': f"{milliseconds:03d}"})
 
-        # Eliminar las claves originales de tiempo en segundos
+        # Remove the original time keys in seconds
         if 'start' in new_item:
             del new_item['start']
         if 'end' in new_item:
@@ -136,45 +135,45 @@ def add_detailed_timestamps(
 
 
 def save_to_csv(data: List[Dict[str, Any]], file_path: str) -> None:
-    """Guarda una lista de diccionarios en un archivo CSV usando pandas."""
+    """Saves a list of dictionaries to a CSV file using pandas."""
     if not data:
-        print("No hay datos para guardar.")
+        print("No data to save.")
         return
-    print(f"Guardando resultado en '{file_path}'...")
+    print(f"Saving result to '{file_path}'...")
     df = DataFrame(data)
     df.to_csv(file_path, index=False, encoding='utf-8')
 
 def read_lyrics_file(filepath: str) -> str:
-    """Lee el contenido de un archivo de texto."""
-    print(f"Leyendo letra desde '{filepath}'...")
+    """Reads the content of a text file."""
+    print(f"Reading lyrics from '{filepath}'...")
     with open(filepath, 'r', encoding='utf-8') as f:
         return f.read()
 
 def main() -> None:
     """
-    Función principal que orquesta el proceso de alineación de letras y audio.
+    Main function that orchestrates the audio and lyric alignment process.
     """
-    parser = argparse.ArgumentParser(description="Alinear audio con letra usando stable-whisper.")
-    parser.add_argument("audio", help="Ruta al archivo de audio.")
-    parser.add_argument("lyrics", help="Ruta al archivo de texto con la letra.")
-    parser.add_argument("-m", "--model", default=DEFAULT_MODEL_NAME, help=f"Nombre del modelo de Whisper (default: {DEFAULT_MODEL_NAME}).")
-    parser.add_argument("-o", "--output", default="final.csv", help="Ruta para el archivo CSV de salida (default: final.csv).")
-    parser.add_argument("--lang", default="ja", help="Código de idioma de la letra (default: ja).")
+    parser = argparse.ArgumentParser(description="Align audio with lyrics using stable-whisper.")
+    parser.add_argument("audio", help="Path to the audio file.")
+    parser.add_argument("lyrics", help="Path to the text file with the lyrics.")
+    parser.add_argument("-m", "--model", default=DEFAULT_MODEL_NAME, help=f"Name of the Whisper model (default: {DEFAULT_MODEL_NAME}).")
+    parser.add_argument("-o", "--output", default="final.csv", help="Path for the output CSV file (default: final.csv).")
+    parser.add_argument("--lang", default="ja", help="Language code of the lyrics (default: ja).")
     args = parser.parse_args()
 
-    # Leer la letra desde el archivo
+    # Read lyrics from the file
     lyrics_text = read_lyrics_file(args.lyrics)
 
-    # Paso 1: Cargar el modelo
+    # Step 1: Load the model
     model = load_model(args.model)
 
-    # Paso 2: Alinear audio y letra
+    # Step 2: Align audio and lyrics
     alignment_result = align_lyrics(model, args.audio, lyrics_text, language=args.lang)
 
-    # Opcional: Guardar el resultado de alineación crudo
+    # Optional: Save the raw alignment result
     # alignment_result.save_as_json('raw_alignment.json')
 
-    # Paso 3: Extraer todas las palabras
+    # Step 3: Extract all words
     all_words: List[Dict[str, Any]] = []
     for segment in alignment_result.segments:
         for word in segment.words:
@@ -185,20 +184,20 @@ def main() -> None:
             })
 
     if not all_words:
-        print("No se encontraron palabras en el resultado de la alineación. Abortando.")
+        print("No words found in the alignment result. Aborting.")
         return
 
-    # Paso 4: Generar timestamps por cada línea de la letra original
+    # Step 4: Generate timestamps for each original lyric line
     lyrics_lines = lyrics_text.strip().split('\n')
     line_timestamps = generate_line_timestamps(lyrics_lines, all_words)
 
-    # Paso 5: Agregar tiempos desglosados para cada línea
+    # Step 5: Add detailed timestamps for each line
     processed_list = add_detailed_timestamps(line_timestamps)
 
-    # Paso 6: Guardar el resultado final
+    # Step 6: Save the final result
     save_to_csv(processed_list, args.output)
 
-    print("\nEl proceso ha terminado con éxito.")
+    print("\nThe process has finished successfully.")
 
 
 if __name__ == "__main__":
