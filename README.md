@@ -58,7 +58,7 @@ This repository represents the foundational first steps toward that goal, curren
 
     > **Note on Permissions:** When you run `lyric_translate.py` for the first time, your browser will open and ask you to grant permission. The script requires the `https://www.googleapis.com/auth/drive` scope, which allows it to create and manage files in your Google Drive.
 
-3.  **Configure Environment Variables:**
+4.  **Configure Environment Variables:**
     Create a `.env` file in the root of the project and add your API keys:
     ```env
     API_KEY_GENAI="your_gemini_api_key_here"
