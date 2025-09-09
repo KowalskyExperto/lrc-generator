@@ -134,41 +134,21 @@ def add_detailed_timestamps(
     return processed_data
 
 
-def save_to_csv(data: List[Dict[str, Any]], file_path: str) -> None:
-    """Saves a list of dictionaries to a CSV file using pandas."""
-    if not data:
-        print("No data to save.")
-        return
-    print(f"Saving result to '{file_path}'...")
-    df = DataFrame(data)
-    df.to_csv(file_path, index=False, encoding='utf-8')
-
-def read_lyrics_file(filepath: str) -> str:
-    """Reads the content of a text file."""
-    print(f"Reading lyrics from '{filepath}'...")
-    with open(filepath, 'r', encoding='utf-8') as f:
-        return f.read()
-
-def main() -> None:
+def run_alignment_workflow(
+    audio_path: str,
+    lyrics_text: str,
+    output_path: str,
+    model_name: str = DEFAULT_MODEL_NAME,
+    language: str = "ja"
+) -> None:
     """
-    Main function that orchestrates the audio and lyric alignment process.
+    Orchestrates the full audio and lyric alignment process.
     """
-    parser = argparse.ArgumentParser(description="Align audio with lyrics using stable-whisper.")
-    parser.add_argument("audio", help="Path to the audio file.")
-    parser.add_argument("lyrics", help="Path to the text file with the lyrics.")
-    parser.add_argument("-m", "--model", default=DEFAULT_MODEL_NAME, help=f"Name of the Whisper model (default: {DEFAULT_MODEL_NAME}).")
-    parser.add_argument("-o", "--output", default="final.csv", help="Path for the output CSV file (default: final.csv).")
-    parser.add_argument("--lang", default="ja", help="Language code of the lyrics (default: ja).")
-    args = parser.parse_args()
-
-    # Read lyrics from the file
-    lyrics_text = read_lyrics_file(args.lyrics)
-
     # Step 1: Load the model
-    model = load_model(args.model)
+    model = load_model(model_name)
 
     # Step 2: Align audio and lyrics
-    alignment_result = align_lyrics(model, args.audio, lyrics_text, language=args.lang)
+    alignment_result = align_lyrics(model, audio_path, lyrics_text, language=language)
 
     # Optional: Save the raw alignment result
     # alignment_result.save_as_json('raw_alignment.json')
@@ -195,9 +175,50 @@ def main() -> None:
     processed_list = add_detailed_timestamps(line_timestamps)
 
     # Step 6: Save the final result
-    save_to_csv(processed_list, args.output)
+    save_to_csv(processed_list, output_path)
 
     print("\nThe process has finished successfully.")
+
+
+def save_to_csv(data: List[Dict[str, Any]], file_path: str) -> None:
+    """Saves a list of dictionaries to a CSV file using pandas."""
+    if not data:
+        print("No data to save.")
+        return
+    print(f"Saving result to '{file_path}'...")
+    df = DataFrame(data)
+    df.to_csv(file_path, index=False, encoding='utf-8')
+
+def read_lyrics_file(filepath: str) -> str:
+    """Reads the content of a text file."""
+    print(f"Reading lyrics from '{filepath}'...")
+    with open(filepath, 'r', encoding='utf-8') as f:
+        return f.read()
+
+def main() -> None:
+    """
+    Main function to handle command-line arguments and run the alignment workflow.
+    """
+    parser = argparse.ArgumentParser(description="Align audio with lyrics using stable-whisper.")
+    parser.add_argument("audio", help="Path to the audio file.")
+    parser.add_argument("lyrics", help="Path to the text file with the lyrics.")
+    parser.add_argument("-m", "--model", default=DEFAULT_MODEL_NAME, help=f"Name of the Whisper model (default: {DEFAULT_MODEL_NAME}).")
+    parser.add_argument("-o", "--output", default="final.csv", help="Path for the output CSV file (default: final.csv).")
+    parser.add_argument("--lang", default="ja",
+                        help="Language code of the lyrics (default: ja).")
+    args = parser.parse_args()
+
+    # Read lyrics from the file
+    lyrics_text = read_lyrics_file(args.lyrics)
+
+    # Run the main workflow
+    run_alignment_workflow(
+        audio_path=args.audio,
+        lyrics_text=lyrics_text,
+        output_path=args.output,
+        model_name=args.model,
+        language=args.lang
+    )
 
 
 if __name__ == "__main__":
