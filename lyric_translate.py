@@ -150,12 +150,23 @@ def main():
                         help="Base name for the output file (without extension). Defaults to the song name.")
     args = parser.parse_args()
 
-    output_filename_base = args.output if args.output else args.song_name
-    csv_filename = f'{output_filename_base}.csv'
+    # Use the provided output name or default to the song name
+    output_base = args.output if args.output else args.song_name
+    # Ensure the final filename ends with exactly one .csv extension
+    csv_filename = f"{os.path.splitext(output_base)[0]}.csv"
 
-    # Read the lyrics from the provided file
-    lyrics_jap_full = read_lyrics_file(args.lyrics_file)
+    try:
+        # Read the lyrics from the provided file
+        lyrics_jap_full = read_lyrics_file(args.lyrics_file)
+    except FileNotFoundError:
+        print(f"Error: The lyrics file was not found at '{args.lyrics_file}'")
+        return
+
     api_key_genai = os.getenv('API_KEY_GENAI')
+    if not api_key_genai:
+        print("Error: The 'API_KEY_GENAI' environment variable is not set.")
+        print("Please create a .env file and add: API_KEY_GENAI=\"your_key_here\"")
+        return
 
     # Process the song
     process_song(lyrics_jap_full, csv_filename, api_key_genai)
