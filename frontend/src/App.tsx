@@ -30,6 +30,7 @@ function App() {
   const [result, setResult] = useState<LyricLine[] | null>(null);
   const [metadata, setMetadata] = useState<Metadata | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isFinalizing, setIsFinalizing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<ActiveTab>('upload');
 
@@ -103,6 +104,57 @@ function App() {
     setResult(newData);
   };
 
+  const handleSetAllChoices = (lyricSource: 'English' | 'Improved English') => {
+    if (!result) return;
+    const newData = result.map(row => ({
+      ...row,
+      selectedLyric: row[lyricSource]
+    }));
+    setResult(newData);
+  };
+
+  const handleFinalize = async () => {
+    if (!result || !metadata || !audioFile) {
+      setError('Missing data to finalize.');
+      return;
+    }
+
+    setIsFinalizing(true);
+    setError(null);
+
+    const formData = new FormData();
+    formData.append('audio_file', audioFile);
+    formData.append('lyrics_data', JSON.stringify(result));
+    formData.append('metadata', JSON.stringify(metadata));
+
+    try {
+      const response = await fetch('http://localhost:8000/generate-and-embed', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to generate final file.');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${metadata.artist} - ${metadata.title}.flac` || 'song.flac';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
+
+    } catch (err: any) {
+      setError(err.message || 'Failed to finalize.');
+    } finally {
+      setIsFinalizing(false);
+    }
+  };
+
   const lrcPreview = useMemo(() => {
     if (!result || !metadata) return "";
     
@@ -160,7 +212,15 @@ function App() {
               <table>
                 <thead>
                   <tr>
-                    <th>M</th><th>S</th><th>MS</th><th>Japanese</th><th>Romaji</th><th>Choice</th><th>Final LRC Lyric</th>
+                    <th>M</th><th>S</th><th>MS</th><th>Japanese</th><th>Romaji</th>
+                    <th>
+                      Choice
+                      <div className="set-all-container">
+                        <button onClick={() => handleSetAllChoices('English')}>All Eng</button>
+                        <button onClick={() => handleSetAllChoices('Improved English')}>All Imp</button>
+                      </div>
+                    </th>
+                    <th>Final LRC Lyric</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -172,10 +232,12 @@ function App() {
                       <td>{row.Japanese}</td>
                       <td><input className="table-input" value={row.Romaji} onChange={(e) => handleLyricEdit(rowIndex, 'Romaji', e.target.value)} /></td>
                       <td>
-                        <div className="choice-container">
-                          <label><input type="radio" name={`choice-${rowIndex}`} value="English" checked={row.selectedLyric === row.English} onChange={() => handleSelectionChange(rowIndex, 'English')} /> Eng</label>
-                          <label><input type="radio" name={`choice-${rowIndex}`} value="Improved English" checked={row.selectedLyric === row['Improved English']} onChange={() => handleSelectionChange(rowIndex, 'Improved English')} /> Imp</label>
-                        </div>
+                        {row.Japanese.trim() !== '' && (
+                          <div className="choice-container">
+                            <label><input type="radio" name={`choice-${rowIndex}`} value="English" checked={row.selectedLyric === row.English} onChange={() => handleSelectionChange(rowIndex, 'English')} /> Eng</label>
+                            <label><input type="radio" name={`choice-${rowIndex}`} value="Improved English" checked={row.selectedLyric === row['Improved English']} onChange={() => handleSelectionChange(rowIndex, 'Improved English')} /> Imp</label>
+                          </div>
+                        )}
                       </td>
                       <td><input className="table-input" value={row.selectedLyric} onChange={(e) => handleLyricEdit(rowIndex, 'selectedLyric', e.target.value)} /></td>
                     </tr>
@@ -190,6 +252,9 @@ function App() {
           <div className="lrc-preview-container">
             <h2>LRC Preview</h2>
             <pre>{lrcPreview}</pre>
+            <button onClick={handleFinalize} className="submit-btn" disabled={isFinalizing}>
+              {isFinalizing ? 'Finalizing...' : 'Finalize & Download'}
+            </button>
           </div>
         )}
       </main>

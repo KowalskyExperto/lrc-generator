@@ -4,8 +4,11 @@ import shutil
 import tempfile
 import pandas as pd
 import mutagen
+import json
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from starlette.background import BackgroundTask
 
 # --- Local Imports ---
 from backend.forced_alignment import get_alignment_data
@@ -35,6 +38,15 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+def cleanup_temp_dir(directory: str):
+    """Removes the specified directory and its contents."""
+    try:
+        shutil.rmtree(directory)
+        logger.debug(f"Successfully cleaned up temporary directory: {directory}")
+    except Exception as e:
+        logger.error(f"Error cleaning up temporary directory {directory}: {e}")
 
 @app.get("/")
 def read_root():
@@ -113,9 +125,65 @@ async def process_lyrics(
 
     except Exception as e:
         logger.error(f"An error occurred during processing: {e}", exc_info=True)
+        # Clean up the directory on failure before raising the exception
+        cleanup_temp_dir(temp_dir)
         raise HTTPException(status_code=500, detail=f"An internal server error occurred: {e}")
 
-    finally:
-        if os.path.exists(temp_dir):
-            shutil.rmtree(temp_dir)
-            logger.debug(f"Successfully cleaned up temporary directory: {temp_dir}")
+@app.post("/generate-and-embed")
+async def generate_and_embed(
+    audio_file: UploadFile = File(...),
+    lyrics_data: str = Form(...),
+    metadata: str = Form(...)
+):
+    logger.info("Received request to generate final file.")
+    temp_dir = tempfile.mkdtemp()
+    
+    if not audio_file.filename:
+        logger.error("Finalize failed: The audio file is missing a filename.")
+        raise HTTPException(status_code=400, detail="The uploaded file is missing a filename.")
+    temp_audio_path = os.path.join(temp_dir, audio_file.filename)
+
+    try:
+        with open(temp_audio_path, "wb") as buffer:
+            shutil.copyfileobj(audio_file.file, buffer)
+        logger.debug(f"Temporarily saved audio file for final processing to {temp_audio_path}")
+
+        lyrics_list = json.loads(lyrics_data)
+        metadata_dict = json.loads(metadata)
+
+        # --- Generate LRC Content ---
+        logger.info("Generating final LRC content string.")
+        headers = [
+            f"[ar: {metadata_dict.get('artist')}]",
+            f"[al: {metadata_dict.get('album')}]",
+            f"[ti: {metadata_dict.get('title')}]",
+            f"[length: {metadata_dict.get('length')}]",
+            f"[tool: KowalskyExperto]"
+        ]
+        lrc_body = []
+        for row in lyrics_list:
+            centiseconds = row['milliseconds'][:2]
+            line = f"[{row['minutes']}:{row['seconds']}.{centiseconds}]{row['Japanese']} {row['Romaji']} {row['selectedLyric']}"
+            lrc_body.append(line)
+        
+        final_lrc_content = "\n".join(headers + lrc_body)
+
+        # --- Embed LRC into Audio File ---
+        logger.info("Embedding LRC content into audio file.")
+        audio_meta = mutagen.File(temp_audio_path)
+        audio_meta["LYRICS"] = final_lrc_content
+        audio_meta.save()
+        logger.info("Embedding complete.")
+
+        return FileResponse(
+            path=temp_audio_path,
+            media_type='application/octet-stream',
+            filename=f"{metadata_dict.get('title', 'final_song')}.flac",
+            background=BackgroundTask(cleanup_temp_dir, temp_dir)
+        )
+
+    except Exception as e:
+        logger.error(f"An error occurred during final generation: {e}", exc_info=True)
+        # Clean up the directory on failure before raising the exception
+        cleanup_temp_dir(temp_dir)
+        raise HTTPException(status_code=500, detail=f"An internal server error occurred: {e}")
