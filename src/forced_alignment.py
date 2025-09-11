@@ -1,7 +1,11 @@
 import stable_whisper
+import logging
 from typing import List, Dict, Any
 from pandas import DataFrame
 import argparse
+
+# --- Logger --- 
+logger = logging.getLogger(__name__)
 
 # --- Constants ---
 DEFAULT_MODEL_NAME = "base"
@@ -11,9 +15,9 @@ DEFAULT_MODEL_NAME = "base"
 
 def load_model(model_name: str) -> Any:
     """Loads a Stable Whisper model."""
-    print(f"Loading model '{model_name}'...")
+    logger.info(f"Loading model '{model_name}'...")
     model = stable_whisper.load_model(model_name)
-    print("Model loaded.")
+    logger.info("Model loaded.")
     return model
 
 
@@ -27,14 +31,14 @@ def align_lyrics(
     Aligns audio with the provided lyrics using Stable Whisper.
     Performs a refinement step to improve accuracy.
     """
-    print(f"Aligning audio '{audio_path}' with lyrics...")
+    logger.info(f"Aligning audio '{audio_path}' with lyrics...")
     # First alignment pass
     result = model.align(audio_path, lyrics,
                          language=language, suppress_silence=True)
     # Second pass to refine timestamps
     result = model.align(audio_path, result,
                          language=language, suppress_silence=True)
-    print("Alignment complete.")
+    logger.info("Alignment complete.")
     return result
 
 
@@ -46,7 +50,7 @@ def generate_line_timestamps(
     Generates start and end timestamps for each line of the lyrics, based on
     the timestamps of individual words.
     """
-    print("Generating line timestamps...")
+    logger.info("Generating line timestamps...")
     final_result: List[Dict[str, Any]] = []
     word_idx = 0
     previous_end_time = 0.0
@@ -92,12 +96,12 @@ def generate_line_timestamps(
             previous_end_time = line_words[-1]['end']
             word_idx = temp_word_idx # Update main index
         except (IndexError, KeyError):
-            print(
-                f"Error: The word timestamps list does not match the lyrics. Failed at line: '{line}'")
-            print(f"Successfully processed {len(final_result)} lines.")
+            logger.error(
+                f"The word timestamps list does not match the lyrics. Failed at line: '{line}'", exc_info=True)
+            logger.info(f"Successfully processed {len(final_result)} lines before failure.")
             break
 
-    print("Line timestamps generated.")
+    logger.info("Line timestamps generated.")
     return final_result
 
 
@@ -134,24 +138,20 @@ def add_detailed_timestamps(
     return processed_data
 
 
-def run_alignment_workflow(
+def get_alignment_data(
     audio_path: str,
     lyrics_text: str,
-    output_path: str,
     model_name: str = DEFAULT_MODEL_NAME,
     language: str = "ja"
-) -> None:
+) -> List[Dict[str, Any]]:
     """
-    Orchestrates the full audio and lyric alignment process.
+    Orchestrates the audio and lyric alignment process and returns the data.
     """
     # Step 1: Load the model
     model = load_model(model_name)
 
     # Step 2: Align audio and lyrics
     alignment_result = align_lyrics(model, audio_path, lyrics_text, language=language)
-
-    # Optional: Save the raw alignment result
-    # alignment_result.save_as_json('raw_alignment.json')
 
     # Step 3: Extract all words
     all_words: List[Dict[str, Any]] = []
@@ -164,8 +164,8 @@ def run_alignment_workflow(
             })
 
     if not all_words:
-        print("No words found in the alignment result. Aborting.")
-        return
+        logger.warning("No words found in the alignment result. Aborting.")
+        return []
 
     # Step 4: Generate timestamps for each original lyric line
     lyrics_lines = lyrics_text.strip().split('\n')
@@ -174,24 +174,44 @@ def run_alignment_workflow(
     # Step 5: Add detailed timestamps for each line
     processed_list = add_detailed_timestamps(line_timestamps)
 
-    # Step 6: Save the final result
-    save_to_csv(processed_list, output_path)
+    return processed_list
 
-    print("\nThe process has finished successfully.")
+def run_alignment_workflow(
+    audio_path: str,
+    lyrics_text: str,
+    output_path: str,
+    model_name: str = DEFAULT_MODEL_NAME,
+    language: str = "ja"
+) -> None:
+    """
+    Orchestrates the full audio and lyric alignment process and saves to CSV.
+    """
+    processed_list = get_alignment_data(
+        audio_path=audio_path,
+        lyrics_text=lyrics_text,
+        model_name=model_name,
+        language=language
+    )
+
+    if processed_list:
+        # Step 6: Save the final result
+        save_to_csv(processed_list, output_path)
+        logger.info("The process has finished successfully.")
+
 
 
 def save_to_csv(data: List[Dict[str, Any]], file_path: str) -> None:
     """Saves a list of dictionaries to a CSV file using pandas."""
     if not data:
-        print("No data to save.")
+        logger.warning("No data to save.")
         return
-    print(f"Saving result to '{file_path}'...")
+    logger.info(f"Saving result to '{file_path}'...")
     df = DataFrame(data)
     df.to_csv(file_path, index=False, encoding='utf-8')
 
 def read_lyrics_file(filepath: str) -> str:
     """Reads the content of a text file."""
-    print(f"Reading lyrics from '{filepath}'...")
+    logger.info(f"Reading lyrics from '{filepath}'...")
     with open(filepath, 'r', encoding='utf-8') as f:
         return f.read()
 
