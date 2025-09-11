@@ -2,13 +2,17 @@ import logging
 import os
 import shutil
 import tempfile
+import time
+import glob
 import pandas as pd
 import mutagen
 import json
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from starlette.background import BackgroundTask
+from apscheduler.schedulers.background import BackgroundScheduler
 
 # --- Local Imports ---
 from backend.forced_alignment import get_alignment_data
@@ -23,7 +27,52 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 # --- End Logging Configuration ---
 
-app = FastAPI()
+# --- Temp File Cleanup --- 
+
+TEMP_DIR_LIFESPAN_SECONDS = 24 * 60 * 60 # 24 hours
+
+def cleanup_old_temp_dirs():
+    """Finds and deletes temporary directories created by this app that are older than a threshold."""
+    logger.info("Running scheduled cleanup of old temporary directories...")
+    temp_dir_root = tempfile.gettempdir()
+    # tempfile.mkdtemp() creates directories with a specific pattern (e.g., 'tmp<random>')
+    search_pattern = os.path.join(temp_dir_root, 'tmp*')
+    
+    for dir_path in glob.glob(search_pattern):
+        if not os.path.isdir(dir_path):
+            continue
+        try:
+            dir_age_seconds = time.time() - os.path.getmtime(dir_path)
+            if dir_age_seconds > TEMP_DIR_LIFESPAN_SECONDS:
+                logger.info(f"Deleting old temporary directory: {dir_path} (Age: {dir_age_seconds / 3600:.2f} hours)")
+                shutil.rmtree(dir_path)
+        except FileNotFoundError:
+            # Directory might have been deleted by another process, safe to ignore
+            continue
+        except Exception as e:
+            logger.error(f"Error deleting temporary directory {dir_path}: {e}")
+    logger.info("Finished temporary directory cleanup.")
+
+# --- Scheduler and Lifespan Management ---
+
+scheduler = BackgroundScheduler()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # On startup
+    logger.info("Application startup: Initializing background scheduler...")
+    # Run once on startup
+    cleanup_old_temp_dirs()
+    # Schedule to run every hour
+    scheduler.add_job(cleanup_old_temp_dirs, 'interval', hours=1)
+    scheduler.start()
+    yield
+    # On shutdown
+    logger.info("Application shutdown: Stopping background scheduler...")
+    scheduler.shutdown()
+
+
+app = FastAPI(lifespan=lifespan)
 
 # --- CORS Middleware Configuration ---
 origins = [

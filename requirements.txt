@@ -3,9 +3,8 @@ google-generativeai
 python-dotenv
 pandas
 pykakasi
-PyDrive2
-openpyxl
 fastapi
 uvicorn[standard]
 python-multipart
 mutagen
+apscheduler
