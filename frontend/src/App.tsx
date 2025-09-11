@@ -1,5 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import './App.css';
+import UploadTab from './components/UploadTab';
+import EditTab from './components/EditTab';
+import ReviewTab from './components/ReviewTab';
 
 // --- Type Definitions ---
 interface LyricLine {
@@ -181,83 +184,43 @@ function App() {
 
   return (
     <div className="App">
-      <header className="App-header"><h1>Lyric Processor</h1></header>
+      <header className="app__header"><h1>Lyric Processor</h1></header>
       
       <div className="tabs">
-        <button className={`tab-button ${activeTab === 'upload' ? 'active' : ''}`} onClick={() => setActiveTab('upload')}>1. Upload</button>
-        <button className={`tab-button ${activeTab === 'edit' ? 'active' : ''}`} onClick={() => setActiveTab('edit')} disabled={!result}>2. Edit</button>
-        <button className={`tab-button ${activeTab === 'review' ? 'active' : ''}`} onClick={() => setActiveTab('review')} disabled={!result}>3. Review LRC</button>
+        <button className={`tabs__button ${activeTab === 'upload' ? 'tabs__button--active' : ''}`} onClick={() => setActiveTab('upload')}>1. Upload</button>
+        <button className={`tabs__button ${activeTab === 'edit' ? 'tabs__button--active' : ''}`} onClick={() => setActiveTab('edit')} disabled={!result}>2. Edit</button>
+        <button className={`tabs__button ${activeTab === 'review' ? 'tabs__button--active' : ''}`} onClick={() => setActiveTab('review')} disabled={!result}>3. Review LRC</button>
       </div>
 
-      <main>
+      <main className="app__main-content">
         {activeTab === 'upload' && (
-          <div className="form-container">
-            <form onSubmit={handleSubmit}>
-              <div className="form-group"><label htmlFor="audio-file">Audio File</label><input id="audio-file" type="file" accept="audio/*" onChange={handleFileChange} /></div>
-              <div className="form-group"><label htmlFor="lyrics-text">Lyrics</label><textarea id="lyrics-text" value={lyricsText} onChange={(e) => setLyricsText(e.target.value)} placeholder="Paste your lyrics here..." /></div>
-              <button type="submit" className="submit-btn" disabled={isLoading}>{isLoading ? 'Processing...' : 'Generate'}</button>
-            </form>
-            {error && <p className="status-message error-message">Error: {error}</p>}
-          </div>
+          <UploadTab 
+            handleSubmit={handleSubmit}
+            handleFileChange={handleFileChange}
+            setLyricsText={setLyricsText}
+            lyricsText={lyricsText}
+            isLoading={isLoading}
+            error={error}
+          />
         )}
 
         {activeTab === 'edit' && result && metadata && (
-          <>
-            <div className="metadata-container">
-              <h2>Song Metadata</h2>
-              <div className="form-group"><label>Title</label><input className="table-input" value={metadata.title} onChange={(e) => handleMetadataChange('title', e.target.value)} /></div>
-              <div className="form-group"><label>Artist</label><input className="table-input" value={metadata.artist} onChange={(e) => handleMetadataChange('artist', e.target.value)} /></div>
-              <div className="form-group"><label>Album</label><input className="table-input" value={metadata.album} onChange={(e) => handleMetadataChange('album', e.target.value)} /></div>
-            </div>
-            <div className="table-container">
-              <h2>Editable Lyrics</h2>
-              <table>
-                <thead>
-                  <tr>
-                    <th>M</th><th>S</th><th>MS</th><th>Japanese</th><th>Romaji</th>
-                    <th>
-                      Choice
-                      <div className="set-all-container">
-                        <button onClick={() => handleSetAllChoices('English')}>All Eng</button>
-                        <button onClick={() => handleSetAllChoices('Improved English')}>All Imp</button>
-                      </div>
-                    </th>
-                    <th>Final LRC Lyric</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {result.map((row, rowIndex) => (
-                    <tr key={rowIndex}>
-                      <td className="col-time"><input className="table-input" value={row.minutes} onChange={(e) => handleLyricEdit(rowIndex, 'minutes', e.target.value)} /></td>
-                      <td className="col-time"><input className="table-input" value={row.seconds} onChange={(e) => handleLyricEdit(rowIndex, 'seconds', e.target.value)} /></td>
-                      <td className="col-time"><input className="table-input" value={row.milliseconds} onChange={(e) => handleLyricEdit(rowIndex, 'milliseconds', e.target.value)} /></td>
-                      <td>{row.Japanese}</td>
-                      <td><input className="table-input" value={row.Romaji} onChange={(e) => handleLyricEdit(rowIndex, 'Romaji', e.target.value)} /></td>
-                      <td>
-                        {row.Japanese.trim() !== '' && (
-                          <div className="choice-container">
-                            <label><input type="radio" name={`choice-${rowIndex}`} value="English" checked={row.selectedLyric === row.English} onChange={() => handleSelectionChange(rowIndex, 'English')} /> Eng</label>
-                            <label><input type="radio" name={`choice-${rowIndex}`} value="Improved English" checked={row.selectedLyric === row['Improved English']} onChange={() => handleSelectionChange(rowIndex, 'Improved English')} /> Imp</label>
-                          </div>
-                        )}
-                      </td>
-                      <td><input className="table-input" value={row.selectedLyric} onChange={(e) => handleLyricEdit(rowIndex, 'selectedLyric', e.target.value)} /></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </>
+          <EditTab 
+            result={result}
+            metadata={metadata}
+            handleLyricEdit={handleLyricEdit}
+            handleMetadataChange={handleMetadataChange}
+            handleSelectionChange={handleSelectionChange}
+            handleSetAllChoices={handleSetAllChoices}
+          />
         )}
 
         {activeTab === 'review' && result && (
-          <div className="lrc-preview-container">
-            <h2>LRC Preview</h2>
-            <pre>{lrcPreview}</pre>
-            <button onClick={handleFinalize} className="submit-btn" disabled={isFinalizing}>
-              {isFinalizing ? 'Finalizing...' : 'Finalize & Download'}
-            </button>
-          </div>
+          <ReviewTab 
+            lrcPreview={lrcPreview}
+            handleFinalize={handleFinalize}
+            isFinalizing={isFinalizing}
+          />
         )}
       </main>
     </div>

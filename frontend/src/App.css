@@ -1,30 +1,63 @@
 .App {
   text-align: center;
-  padding: 2rem;
+  padding: 0.5rem;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
 }
 
-.form-container {
+.app__header {
+  /* No specific styles needed yet */
+}
+
+.app__main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.app__status-message {
+  margin-top: 1rem;
+  font-weight: bold;
+}
+
+.app__status-message--error {
+  color: #ff6b6b;
+}
+
+/* --- Generic Card Block --- */
+.card {
   background-color: #1e2127;
   padding: 2rem;
   border-radius: 8px;
-  max-width: 600px;
-  margin: 0 auto;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  margin: 0 auto;
+  width: 100%;
 }
 
-.form-group {
+/* --- Upload Form Block --- */
+.upload-form {
+  max-width: 700px;
+  align-self: center;
+  display: flex;
+  flex-direction: column;
+}
+
+.upload-form__group {
   margin-bottom: 1.5rem;
   text-align: left;
 }
 
-.form-group label {
+.upload-form__group label {
   display: block;
   margin-bottom: 0.5rem;
   font-weight: 500;
 }
 
-.form-group input[type="file"],
-.form-group textarea {
+.upload-form__group input[type="file"],
+.upload-form__group textarea {
   width: 100%;
   padding: 0.75rem;
   border-radius: 4px;
@@ -32,15 +65,15 @@
   background-color: #282c34;
   color: #fff;
   font-size: 1rem;
-  box-sizing: border-box; /* Ensures padding doesn't affect width */
+  box-sizing: border-box;
 }
 
-.form-group textarea {
+.upload-form__group textarea {
   min-height: 150px;
   resize: vertical;
 }
 
-.submit-btn {
+.upload-form__submit {
   background-color: #61dafb;
   color: #1e2127;
   border: none;
@@ -52,61 +85,55 @@
   transition: background-color 0.2s ease;
 }
 
-.submit-btn:hover {
+.upload-form__submit:hover {
   background-color: #88eaff;
 }
 
-.submit-btn:disabled {
+.upload-form__submit:disabled {
   background-color: #555;
   cursor: not-allowed;
 }
 
-.status-message {
-  margin-top: 1rem;
-  font-weight: bold;
-}
-
-.error-message {
-  color: #ff6b6b;
-}
-
-.metadata-container {
-  background-color: #1e2127;
-  padding: 2rem;
-  border-radius: 8px;
+/* --- Metadata Editor Block --- */
+.metadata-editor {
   max-width: 800px;
-  margin: 0 auto 2rem auto;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  margin-bottom: 2rem;
 }
 
-.metadata-container h2 {
+.metadata-editor__title {
   margin-top: 0;
 }
 
-.metadata-container .form-group {
+.metadata-editor__group {
   display: flex;
   align-items: center;
   gap: 1rem;
+  margin-bottom: 1rem; /* Add some spacing */
 }
 
-.metadata-container .form-group label {
-  flex-basis: 100px; /* Give labels a fixed width */
+.metadata-editor__group label {
+  flex-basis: 100px;
   flex-shrink: 0;
-  margin-bottom: 0;
 }
 
-.metadata-container .table-input {
+.metadata-editor__input {
+  width: 100%;
+  padding: 0.75rem;
+  border-radius: 4px;
   border: 1px solid #444;
+  background-color: #282c34;
+  color: #fff;
+  font-size: 1rem;
 }
 
-/* --- Tab Styles --- */
+/* --- Tabs Block --- */
 .tabs {
   margin-bottom: 2rem;
   border-bottom: 2px solid #444;
   display: flex;
 }
 
-.tab-button {
+.tabs__button {
   padding: 0.75rem 1.5rem;
   cursor: pointer;
   border: none;
@@ -115,88 +142,90 @@
   font-size: 1rem;
   font-weight: 500;
   border-bottom: 2px solid transparent;
-  margin-bottom: -2px; /* Align with the container's border */
+  margin-bottom: -2px;
 }
 
-.tab-button.active {
+.tabs__button--active {
   color: #61dafb;
   border-bottom-color: #61dafb;
 }
 
-.tab-button:disabled {
+.tabs__button:disabled {
   color: #555;
   cursor: not-allowed;
 }
 
-/* --- Table Styles --- */
-.table-container {
+/* --- Lyrics Editor Block --- */
+.lyrics-editor {
   margin-top: 2rem;
   width: 100%;
-  overflow-x: auto; /* Allows horizontal scrolling for very wide tables */
+  overflow-x: auto;
 }
 
-table {
+.lyrics-editor__title {
+  /* Add styles if needed */
+}
+
+.lyrics-editor__table {
   width: 100%;
   border-collapse: collapse;
 }
 
-th, td {
-  padding: 0.4rem 0.75rem; /* Reduced vertical padding */
+.lyrics-editor__table th,
+.lyrics-editor__table td {
+  padding: 0.4rem 0.75rem;
   border: 1px solid #444;
   text-align: left;
-  vertical-align: top; /* Align content to the top of the cell */
+  vertical-align: top;
 }
 
-thead {
+.lyrics-editor__table thead {
   background-color: #282c34;
 }
 
-tbody tr:nth-child(odd) {
+.lyrics-editor__table tbody tr:nth-child(odd) {
   background-color: #2c313a;
 }
 
-tbody tr:hover {
+.lyrics-editor__table tbody tr:hover {
   background-color: #3a4049;
 }
 
-.table-input {
+.lyrics-editor__input {
   width: 100%;
   background-color: transparent;
   border: 1px solid transparent;
   color: #fff;
-  font-size: 0.9rem; /* Smaller font */
+  font-size: 0.9rem;
   padding: 0.25rem;
   box-sizing: border-box;
 }
 
-.table-input:focus {
+.lyrics-editor__input:focus {
   outline: none;
   border-color: #61dafb;
   background-color: #1e2127;
 }
 
-/* Target first 3 columns to be narrow */
-th:nth-child(1), td:nth-child(1),
-th:nth-child(2), td:nth-child(2),
-th:nth-child(3), td:nth-child(3) {
+/* Narrow timestamp columns */
+.lyrics-editor__table th:nth-child(-n+3),
+.lyrics-editor__table td:nth-child(-n+3) {
   width: 55px;
   text-align: center;
 }
 
-/* Center text inside the inputs of the first 3 columns */
-td:nth-child(1) .table-input,
-td:nth-child(2) .table-input,
-td:nth-child(3) .table-input {
+.lyrics-editor__table td:nth-child(-n+3) .lyrics-editor__input {
   text-align: center;
 }
 
-/* Autosize the Japanese column */
-th:nth-child(4), td:nth-child(4) {
+/* Autosize Japanese column */
+.lyrics-editor__table th:nth-child(4),
+.lyrics-editor__table td:nth-child(4) {
   width: 1%;
   white-space: nowrap;
 }
 
-.choice-container {
+.lyrics-editor__choice {
   display: flex;
   gap: 0.5rem;
   align-items: center;
@@ -204,14 +233,14 @@ th:nth-child(4), td:nth-child(4) {
   font-size: 0.8rem;
 }
 
-.set-all-container {
+.lyrics-editor__set-all-choice {
   display: flex;
   gap: 0.25rem;
   margin-top: 0.25rem;
   justify-content: center;
 }
 
-.set-all-container button {
+.lyrics-editor__set-all-choice button {
   font-size: 0.7rem;
   padding: 0.1rem 0.3rem;
   background-color: #444;
@@ -221,26 +250,49 @@ th:nth-child(4), td:nth-child(4) {
   cursor: pointer;
 }
 
-.set-all-container button:hover {
+.lyrics-editor__set-all-choice button:hover {
   background-color: #555;
 }
 
-.lrc-preview-container {
+/* --- LRC Preview Block --- */
+.lrc-preview {
   margin-top: 2rem;
   text-align: left;
 }
 
-.lrc-preview-container h2 {
+.lrc-preview__title {
   margin-bottom: 1rem;
 }
 
-.lrc-preview-container pre {
-  white-space: pre-wrap;      
-  word-wrap: break-word; 
+.lrc-preview__content {
+  white-space: pre-wrap;
+  word-wrap: break-word;
   max-height: 300px;
   overflow-y: auto;
   background-color: #1e2127;
   padding: 1rem;
   border-radius: 8px;
   border: 1px solid #444;
+}
+
+.lrc-preview__download {
+  background-color: #61dafb;
+  color: #1e2127;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  margin-top: 1rem; /* Add some space above the button */
+}
+
+.lrc-preview__download:hover {
+  background-color: #88eaff;
+}
+
+.lrc-preview__download:disabled {
+  background-color: #555;
+  cursor: not-allowed;
 }
