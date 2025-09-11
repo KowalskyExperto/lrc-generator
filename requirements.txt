@@ -5,3 +5,5 @@ pandas
 pykakasi
 PyDrive2
 openpyxl
+fastapi
+uvicorn[standard]
