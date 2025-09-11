@@ -7,3 +7,4 @@ PyDrive2
 openpyxl
 fastapi
 uvicorn[standard]
+python-multipart

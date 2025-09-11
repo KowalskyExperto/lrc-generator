@@ -15,7 +15,7 @@ load_dotenv()
 
 # --- Constants ---
 GEMINI_MODEL_NAME = 'gemini-1.5-flash'
-
+MAX_RETRIES = 3
 
 def convert_to_romaji(japanese_text: list, kks: kakasi) -> list:
     """Converts a list of Japanese strings to Romaji."""
@@ -25,12 +25,15 @@ def convert_to_romaji(japanese_text: list, kks: kakasi) -> list:
 def translate_lyrics(japanese_lyrics: str, model: genai.GenerativeModel) -> list:
     """Gets the English translation from Gemini."""
     prompt = f"""
-Below are song lyrics in Japanese.
-Your task is to provide an English translation. Ensure it is accurate and, most importantly, captures the feeling and context of the original lyrics.
-Maintain the original line-by-line format and line breaks.
-Provide only the translation, without any additional text or explanations.
+**ROLE**: You are a precise, line-by-line translator.
+**TASK**: Translate the following Japanese song lyrics into English.
+**RULES**:
+1. The output MUST have the exact same number of lines as the input.
+2. Each line in the output MUST correspond directly to the same line in the input.
+3. DO NOT add any extra text, introductory phrases, explanations, or comments.
+4. Preserve all original line breaks.
 
-Japanese Lyrics:
+**JAPANESE LYRICS TO TRANSLATE**:
 ---
 {japanese_lyrics}
 ---
@@ -43,17 +46,15 @@ Japanese Lyrics:
 def review_and_improve_translation(lyrics_to_review: str, model: genai.GenerativeModel) -> list:
     """Reviews and improves a Japanese-to-English song translation."""
     prompt = f"""
-Below are song lyrics in Japanese, along with an English translation.
-Your task is to analyze the English translation to determine if it is accurate and, most importantly, if it captures the feeling and context of the original lyrics.
+**ROLE**: You are a precise, line-by-line translation reviewer.
+**TASK**: Review the proposed English translation and provide a more natural, improved version.
+**RULES**:
+1. The output MUST have the exact same number of lines as the input Japanese lyrics.
+2. Each line in the output MUST correspond directly to the same line in the input.
+3. DO NOT add any extra text, introductory phrases, explanations, or comments.
+4. Provide ONLY the improved English translation.
 
-If the translation is too literal, propose an improved version that sounds more natural to an English speaker and conveys the song's emotion.
-
-Maintain the original line-by-line format and line breaks.
-Only the improved translation is required; omit the Japanese.
-Provide only the improvement, without any additional text or explanations.
-The same number of lines must be maintained.
-
-Lyrics to review:
+**LYRICS TO REVIEW (JAPANESE vs. ENGLISH)**:
 ---
 {lyrics_to_review}
 ---
@@ -83,7 +84,10 @@ def combine_jap_eng_for_prompt(lyrics_jap: list, lyrics_eng: list) -> str:
 # Main workflow functions
 
 def get_translation_data(full_lyrics: str, api_key_genai: str) -> DataFrame:
-    """Processes lyrics to generate translations and returns them as a DataFrame."""
+    """
+    Processes lyrics to generate translations and returns them as a DataFrame.
+    Includes a retry mechanism for each translation step.
+    """
     genai.configure(api_key=api_key_genai)
     model = genai.GenerativeModel(GEMINI_MODEL_NAME)
     kks = kakasi()
@@ -92,24 +96,53 @@ def get_translation_data(full_lyrics: str, api_key_genai: str) -> DataFrame:
     logger.info('Converting to Romaji...')
     lyrics_rom = convert_to_romaji(lyrics_jap, kks)
 
-    logger.info('Translating song to English...')
-    lyrics_eng = translate_lyrics(full_lyrics, model)
+    # --- Loop 1: Initial Translation ---
+    lyrics_eng = []
+    for attempt in range(MAX_RETRIES):
+        logger.debug(f"Initial translation attempt {attempt + 1} of {MAX_RETRIES}...")
+        lyrics_eng = translate_lyrics(full_lyrics, model)
+        if len(lyrics_jap) == len(lyrics_eng):
+            logger.info("Initial translation line count matches.")
+            break
+        else:
+            logger.warning(
+                f"Attempt {attempt + 1} failed: Initial translation line count mismatch. "
+                f"Japanese: {len(lyrics_jap)}, English: {len(lyrics_eng)}. Retrying..."
+            )
+    else: # This 'else' belongs to the 'for' loop, and runs if the loop completes without a 'break'
+        raise ValueError("Initial translation failed due to persistent line count mismatch.")
 
+    # --- Loop 2: Improved Translation ---
     lyrics_to_review = combine_jap_eng_for_prompt(lyrics_jap, lyrics_eng)
+    lyrics_eng_improved = []
+    for attempt in range(MAX_RETRIES):
+        logger.debug(f"Improved translation attempt {attempt + 1} of {MAX_RETRIES}...")
+        lyrics_eng_improved = review_and_improve_translation(lyrics_to_review, model)
+        if len(lyrics_jap) == len(lyrics_eng_improved):
+            logger.info("Improved translation line count matches.")
+            break
+        else:
+            logger.warning(
+                f"Attempt {attempt + 1} failed: Improved translation line count mismatch. "
+                f"Japanese: {len(lyrics_jap)}, Improved: {len(lyrics_eng_improved)}. Retrying..."
+            )
+    else:
+        raise ValueError("Improved translation failed due to persistent line count mismatch.")
 
-    logger.info('Improving translation...')
-    lyrics_eng_improved = review_and_improve_translation(lyrics_to_review, model)
-
+    # --- Final DataFrame Creation ---
     logger.info('Generating DataFrame...')
     return create_dataframe(lyrics_jap, lyrics_rom, lyrics_eng, lyrics_eng_improved)
 
 
 def process_song(full_lyrics: str, output_filepath: str, api_key_genai: str):
     """Orchestrates the full lyric translation process and saves to CSV."""
-    df_lyrics = get_translation_data(full_lyrics, api_key_genai)
-    logger.info(f'Generating CSV: {output_filepath}')
-    save_to_csv(df_lyrics, output_filepath)
-    logger.info("Process complete and saved to CSV file.")
+    try:
+        df_lyrics = get_translation_data(full_lyrics, api_key_genai)
+        logger.info(f'Generating CSV: {output_filepath}')
+        save_to_csv(df_lyrics, output_filepath)
+        logger.info("Process complete and saved to CSV file.")
+    except ValueError as e:
+        logger.error(f"Could not process song: {e}")
 
 
 def read_lyrics_file(filepath: str) -> str:
