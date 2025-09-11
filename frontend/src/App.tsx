@@ -23,6 +23,8 @@ interface Metadata {
 
 type ActiveTab = 'upload' | 'edit' | 'review';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+
 // --- Main App Component ---
 function App() {
   const [audioFile, setAudioFile] = useState<File | null>(null);
@@ -57,7 +59,7 @@ function App() {
     formData.append('lyrics_text', lyricsText);
 
     try {
-      const response = await fetch('http://localhost:8000/process-lyrics', {
+      const response = await fetch(`${API_BASE_URL}/process-lyrics`, {
         method: 'POST',
         body: formData,
       });
@@ -128,7 +130,7 @@ function App() {
     formData.append('metadata', JSON.stringify(metadata));
 
     try {
-      const response = await fetch('http://localhost:8000/generate-and-embed', {
+      const response = await fetch(`${API_BASE_URL}/generate-and-embed`, {
         method: 'POST',
         body: formData,
       });
