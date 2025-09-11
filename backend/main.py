@@ -6,8 +6,8 @@ import pandas as pd
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 
 # --- Local Imports ---
-from src.forced_alignment import get_alignment_data
-from src.lyric_translate import get_translation_data
+from backend.forced_alignment import get_alignment_data
+from backend.lyric_translate import get_translation_data
 
 # --- Logging Configuration ---
 logging.basicConfig(
