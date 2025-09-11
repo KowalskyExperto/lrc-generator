@@ -16,6 +16,8 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
+  padding: 0 0.5rem; /* Global horizontal padding */
+  box-sizing: border-box;
 }
 
 .app__status-message {
@@ -162,9 +164,10 @@
   overflow-x: auto;
 }
 
+/*
 .lyrics-editor__title {
-  /* Add styles if needed */
 }
+*/
 
 .lyrics-editor__table {
   width: 100%;
@@ -173,10 +176,17 @@
 
 .lyrics-editor__table th,
 .lyrics-editor__table td {
-  padding: 0.4rem 0.75rem;
   border: 1px solid #444;
   text-align: left;
-  vertical-align: top;
+}
+
+.lyrics-editor__table th {
+  padding: 0.5rem 0.85rem;
+  vertical-align: top; /* Keep headers aligned top */
+}
+
+.lyrics-editor__table td {
+  vertical-align: middle; /* Center all body cells vertically */
 }
 
 .lyrics-editor__table thead {
@@ -194,10 +204,11 @@
 .lyrics-editor__input {
   width: 100%;
   background-color: transparent;
-  border: 1px solid transparent;
+  border: 1px solid transparent; /* Let the parent TD handle the border */
   color: #fff;
+  font-family: inherit;
   font-size: 0.9rem;
-  padding: 0.25rem;
+  padding: 0.4rem 0.75rem; /* Centralized padding */
   box-sizing: border-box;
 }
 
@@ -206,6 +217,19 @@
   border-color: #61dafb;
   background-color: #1e2127;
 }
+
+.lyrics-editor__input--wrapping {
+  /* Override default textarea styles */
+  resize: none;
+  overflow: hidden; /* Hide the scrollbar initially */
+  line-height: 1.4; /* Adjust for better text alignment */
+  
+  /* Ensure it wraps */
+  white-space: normal;
+  word-break: break-word;
+}
+
+/* --- Column Specific Styles --- */
 
 /* Narrow timestamp columns */
 .lyrics-editor__table th:nth-child(-n+3),
@@ -225,12 +249,38 @@
   white-space: nowrap;
 }
 
+/* Center choice column */
+.lyrics-editor__table td:nth-child(6) {
+  text-align: center;
+}
+
+/* Autosize choice column */
+.lyrics-editor__table th:nth-child(6),
+.lyrics-editor__table td:nth-child(6) {
+  width: 1%;
+  white-space: nowrap;
+}
+
+/* Wrap long text in Romaji and Final Lyric columns */
+.lyrics-editor__table td:nth-child(5),
+.lyrics-editor__table td:nth-child(7) {
+  white-space: normal;
+  word-break: break-word;
+}
+
 .lyrics-editor__choice {
   display: flex;
   gap: 0.5rem;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: center; /* Center the radio buttons */
   font-size: 0.8rem;
+}
+
+.lyrics-editor__choice label {
+  display: flex;
+  flex-direction: column; /* Stack input on top of text */
+  align-items: center;
+  gap: 0.2rem; /* Add a small gap between button and text */
 }
 
 .lyrics-editor__set-all-choice {
@@ -267,7 +317,7 @@
 .lrc-preview__content {
   white-space: pre-wrap;
   word-wrap: break-word;
-  max-height: 300px;
+  max-height: 450px; /* Increased height by 50% */
   overflow-y: auto;
   background-color: #1e2127;
   padding: 1rem;

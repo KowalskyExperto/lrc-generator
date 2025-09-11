@@ -1,4 +1,5 @@
 import React from 'react';
+import AutoGrowTextarea from './AutoGrowTextarea';
 
 // Assuming these types are defined in a shared types file, 
 // but defining here for simplicity for now.
@@ -62,7 +63,6 @@ const EditTab: React.FC<EditTabProps> = ({
             <tr>
               <th>M</th><th>S</th><th>MS</th><th>Japanese</th><th>Romaji</th>
               <th>
-                Choice
                 <div className="lyrics-editor__set-all-choice">
                   <button onClick={() => handleSetAllChoices('English')}>All Eng</button>
                   <button onClick={() => handleSetAllChoices('Improved English')}>All Imp</button>
@@ -77,8 +77,8 @@ const EditTab: React.FC<EditTabProps> = ({
                 <td><input className="lyrics-editor__input" value={row.minutes} onChange={(e) => handleLyricEdit(rowIndex, 'minutes', e.target.value)} /></td>
                 <td><input className="lyrics-editor__input" value={row.seconds} onChange={(e) => handleLyricEdit(rowIndex, 'seconds', e.target.value)} /></td>
                 <td><input className="lyrics-editor__input" value={row.milliseconds} onChange={(e) => handleLyricEdit(rowIndex, 'milliseconds', e.target.value)} /></td>
-                <td>{row.Japanese}</td>
-                <td><input className="lyrics-editor__input" value={row.Romaji} onChange={(e) => handleLyricEdit(rowIndex, 'Romaji', e.target.value)} /></td>
+                <td><div className="lyrics-editor__input">{row.Japanese}</div></td>
+                <td><AutoGrowTextarea className="lyrics-editor__input lyrics-editor__input--wrapping" value={row.Romaji} onChange={(e) => handleLyricEdit(rowIndex, 'Romaji', e.target.value)} rows={1} /></td>
                 <td>
                   {row.Japanese.trim() !== '' && (
                     <div className="lyrics-editor__choice">
@@ -87,7 +87,7 @@ const EditTab: React.FC<EditTabProps> = ({
                     </div>
                   )}
                 </td>
-                <td><input className="lyrics-editor__input" value={row.selectedLyric} onChange={(e) => handleLyricEdit(rowIndex, 'selectedLyric', e.target.value)} /></td>
+                <td><AutoGrowTextarea className="lyrics-editor__input lyrics-editor__input--wrapping" value={row.selectedLyric} onChange={(e) => handleLyricEdit(rowIndex, 'selectedLyric', e.target.value)} rows={1} /></td>
               </tr>
             ))}
           </tbody>
