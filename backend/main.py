@@ -3,7 +3,9 @@ import os
 import shutil
 import tempfile
 import pandas as pd
+import mutagen
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 
 # --- Local Imports ---
 from backend.forced_alignment import get_alignment_data
@@ -18,14 +20,11 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 # --- End Logging Configuration ---
 
-from fastapi.middleware.cors import CORSMiddleware
-
 app = FastAPI()
 
 # --- CORS Middleware Configuration ---
-# Allows the frontend (running on a different port) to communicate with this backend
 origins = [
-    "http://localhost:5173",      # Default Vite dev server port
+    "http://localhost:5173",
     "http://127.0.0.1:5173",
 ]
 
@@ -33,10 +32,9 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],  # Allows all methods
-    allow_headers=["*"],  # Allows all headers
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
-
 
 @app.get("/")
 def read_root():
@@ -50,13 +48,6 @@ async def process_lyrics(
     lyrics_text: str = Form(...)
 ):
     logger.debug(f"Received lyrics_text: {repr(lyrics_text)}")
-    """
-    Main endpoint to process an audio file and lyrics.
-    1. Receives audio and lyrics.
-    2. Runs forced alignment to get timestamps.
-    3. Runs translation.
-    4. Merges the results and returns them as JSON.
-    """
     temp_dir = tempfile.mkdtemp()
 
     if not audio_file.filename:
@@ -65,12 +56,33 @@ async def process_lyrics(
     temp_audio_path = os.path.join(temp_dir, audio_file.filename)
 
     try:
-        # Save the uploaded audio file to the temporary directory
         with open(temp_audio_path, "wb") as buffer:
             shutil.copyfileobj(audio_file.file, buffer)
         logger.debug(f"Temporarily saved audio file to {temp_audio_path}")
 
-        # Check for API key
+        # --- Read Audio Metadata ---
+        try:
+            audio_meta = mutagen.File(temp_audio_path, easy=True)
+            length_seconds = audio_meta.info.length
+            minutes = int(length_seconds // 60)
+            seconds = length_seconds % 60
+            metadata = {
+                'title': audio_meta.get('title', [audio_file.filename])[0],
+                'artist': audio_meta.get('artist', ['Unknown Artist'])[0],
+                'album': audio_meta.get('album', ['Unknown Album'])[0],
+                'length': f"{minutes:02}:{seconds:06.3f}"
+            }
+        except Exception as meta_e:
+            logger.warning(f"Could not read metadata from audio file: {meta_e}")
+            metadata = {
+                'title': audio_file.filename,
+                'artist': 'Unknown Artist',
+                'album': 'Unknown Album',
+                'length': '00:00.000'
+            }
+        logger.info(f"Read metadata: {metadata}")
+
+        # --- Check for API key ---
         api_key_genai = os.getenv('API_KEY_GENAI')
         if not api_key_genai:
             logger.error("API_KEY_GENAI environment variable not set.")
@@ -88,24 +100,22 @@ async def process_lyrics(
 
         # --- Merge and Return Results ---
         logger.info("Merging alignment and translation data...")
-        # Ensure both dataframes have the same index to prevent misalignment
         alignment_df.reset_index(drop=True, inplace=True)
         translation_df.reset_index(drop=True, inplace=True)
-        
         merged_df = pd.concat([alignment_df, translation_df], axis=1)
-
-        # Convert DataFrame to a list of dictionaries for JSON response
-        result_json = merged_df.to_dict(orient='records')
+        lyrics_json = merged_df.to_dict(orient='records')
         
         logger.info("Successfully processed lyrics.")
-        return result_json
+        return {
+            "lyrics": lyrics_json,
+            "metadata": metadata
+        }
 
     except Exception as e:
         logger.error(f"An error occurred during processing: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"An internal server error occurred: {e}")
 
     finally:
-        # Clean up the temporary directory and its contents
         if os.path.exists(temp_dir):
             shutil.rmtree(temp_dir)
             logger.debug(f"Successfully cleaned up temporary directory: {temp_dir}")

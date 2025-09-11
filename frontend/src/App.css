@@ -70,15 +70,156 @@
   color: #ff6b6b;
 }
 
-.result-container {
+.metadata-container {
+  background-color: #1e2127;
+  padding: 2rem;
+  border-radius: 8px;
+  max-width: 800px;
+  margin: 0 auto 2rem auto;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.metadata-container h2 {
+  margin-top: 0;
+}
+
+.metadata-container .form-group {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.metadata-container .form-group label {
+  flex-basis: 100px; /* Give labels a fixed width */
+  flex-shrink: 0;
+  margin-bottom: 0;
+}
+
+.metadata-container .table-input {
+  border: 1px solid #444;
+}
+
+/* --- Tab Styles --- */
+.tabs {
+  margin-bottom: 2rem;
+  border-bottom: 2px solid #444;
+  display: flex;
+}
+
+.tab-button {
+  padding: 0.75rem 1.5rem;
+  cursor: pointer;
+  border: none;
+  background-color: transparent;
+  color: #aaa;
+  font-size: 1rem;
+  font-weight: 500;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px; /* Align with the container's border */
+}
+
+.tab-button.active {
+  color: #61dafb;
+  border-bottom-color: #61dafb;
+}
+
+.tab-button:disabled {
+  color: #555;
+  cursor: not-allowed;
+}
+
+/* --- Table Styles --- */
+.table-container {
+  margin-top: 2rem;
+  width: 100%;
+  overflow-x: auto; /* Allows horizontal scrolling for very wide tables */
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th, td {
+  padding: 0.4rem 0.75rem; /* Reduced vertical padding */
+  border: 1px solid #444;
+  text-align: left;
+  vertical-align: top; /* Align content to the top of the cell */
+}
+
+thead {
+  background-color: #282c34;
+}
+
+tbody tr:nth-child(odd) {
+  background-color: #2c313a;
+}
+
+tbody tr:hover {
+  background-color: #3a4049;
+}
+
+.table-input {
+  width: 100%;
+  background-color: transparent;
+  border: 1px solid transparent;
+  color: #fff;
+  font-size: 0.9rem; /* Smaller font */
+  padding: 0.25rem;
+  box-sizing: border-box;
+}
+
+.table-input:focus {
+  outline: none;
+  border-color: #61dafb;
+  background-color: #1e2127;
+}
+
+/* Target first 3 columns to be narrow */
+th:nth-child(1), td:nth-child(1),
+th:nth-child(2), td:nth-child(2),
+th:nth-child(3), td:nth-child(3) {
+  width: 55px;
+  text-align: center;
+}
+
+/* Center text inside the inputs of the first 3 columns */
+td:nth-child(1) .table-input,
+td:nth-child(2) .table-input,
+td:nth-child(3) .table-input {
+  text-align: center;
+}
+
+/* Autosize the Japanese column */
+th:nth-child(4), td:nth-child(4) {
+  width: 1%;
+  white-space: nowrap;
+}
+
+.choice-container {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: flex-start;
+  font-size: 0.8rem;
+}
+
+.lrc-preview-container {
   margin-top: 2rem;
   text-align: left;
+}
+
+.lrc-preview-container h2 {
+  margin-bottom: 1rem;
+}
+
+.lrc-preview-container pre {
+  white-space: pre-wrap;      
+  word-wrap: break-word; 
+  max-height: 300px;
+  overflow-y: auto;
   background-color: #1e2127;
   padding: 1rem;
   border-radius: 8px;
-  white-space: pre-wrap;       /* CSS3 */
-  white-space: -moz-pre-wrap;  /* Mozilla, since 1999 */
-  white-space: -pre-wrap;      /* Opera 4-6 */
-  white-space: -o-pre-wrap;    /* Opera 7 */
-  word-wrap: break-word;       /* Internet Explorer 5.5+ */
+  border: 1px solid #444;
 }
