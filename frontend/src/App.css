@@ -1,0 +1,84 @@
+.App {
+  text-align: center;
+  padding: 2rem;
+}
+
+.form-container {
+  background-color: #1e2127;
+  padding: 2rem;
+  border-radius: 8px;
+  max-width: 600px;
+  margin: 0 auto;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+  text-align: left;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.form-group input[type="file"],
+.form-group textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border-radius: 4px;
+  border: 1px solid #444;
+  background-color: #282c34;
+  color: #fff;
+  font-size: 1rem;
+  box-sizing: border-box; /* Ensures padding doesn't affect width */
+}
+
+.form-group textarea {
+  min-height: 150px;
+  resize: vertical;
+}
+
+.submit-btn {
+  background-color: #61dafb;
+  color: #1e2127;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.submit-btn:hover {
+  background-color: #88eaff;
+}
+
+.submit-btn:disabled {
+  background-color: #555;
+  cursor: not-allowed;
+}
+
+.status-message {
+  margin-top: 1rem;
+  font-weight: bold;
+}
+
+.error-message {
+  color: #ff6b6b;
+}
+
+.result-container {
+  margin-top: 2rem;
+  text-align: left;
+  background-color: #1e2127;
+  padding: 1rem;
+  border-radius: 8px;
+  white-space: pre-wrap;       /* CSS3 */
+  white-space: -moz-pre-wrap;  /* Mozilla, since 1999 */
+  white-space: -pre-wrap;      /* Opera 4-6 */
+  white-space: -o-pre-wrap;    /* Opera 7 */
+  word-wrap: break-word;       /* Internet Explorer 5.5+ */
+}
