@@ -173,7 +173,10 @@ async def process_lyrics(
         alignment_df.reset_index(drop=True, inplace=True)
         translation_df.reset_index(drop=True, inplace=True)
         merged_df = pd.concat([alignment_df, translation_df], axis=1)
-        lyrics_json = merged_df.to_dict(orient='records')
+        # We convert the list of dictionaries to a JSON string and back to a
+        # Python object to ensure all data types are standard (e.g., int, str)
+        # and not special numpy types that are not JSON serializable.
+        lyrics_json = json.loads(merged_df.to_json(orient='records'))
         
         logger.info("Successfully processed lyrics.")
         return {

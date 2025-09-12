@@ -26,3 +26,6 @@ final.json
 *.flac
 *.txt
 *.lrcROADMAP.md
+
+# Media assets - should not be committed
+assets/

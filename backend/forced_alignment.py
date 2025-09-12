@@ -55,10 +55,12 @@ def generate_line_timestamps(
     word_idx = 0
     previous_end_time = 0.0
 
-    for original_line in lyrics_lines:
+    for i, original_line in enumerate(lyrics_lines):
         line = original_line.strip()
+        logger.debug(f"Processing line {i+1}/{len(lyrics_lines)}: '{line}'")
+
         if not line:
-            # For empty lines, use the end time of the previous line.
+            logger.debug("Line is empty, appending with previous end time.")
             final_result.append({
                 'linea': '', # Keep empty lines for structure
                 'start': previous_end_time,
@@ -70,38 +72,59 @@ def generate_line_timestamps(
             line_words = []
             reconstructed_line = ""
             
-            # Consume words from the list until the reconstructed line matches the original line
             temp_word_idx = word_idx
-            clean_line = line.replace(" ", "")
+            # A more robust way to clean the line for comparison
+            clean_line = ''.join(c for c in line if c.isalnum())
+            logger.debug(f"Cleaned target line: '{clean_line}'")
 
             while temp_word_idx < len(word_timestamps):
                 word_obj = word_timestamps[temp_word_idx]
-                word_text = word_obj['word'].strip()
+                # Clean the word from Whisper in the same way
+                word_text = ''.join(c for c in word_obj['word'].strip() if c.isalnum())
                 
-                # Check if adding the next word still forms a prefix of the clean line
+                logger.debug(f"  - Trying word '{word_text}' at index {temp_word_idx}. Reconstructed so far: '{reconstructed_line}'")
+
                 if clean_line.startswith(reconstructed_line + word_text):
                     reconstructed_line += word_text
                     line_words.append(word_obj)
                     temp_word_idx += 1
                     if reconstructed_line == clean_line:
-                        break # Found all words for this line
+                        logger.debug(f"  SUCCESS: Reconstructed line matches clean line.")
+                        break
                 else:
-                    break # Word doesn't match, move to next line
+                    logger.debug(f"  MISMATCH: Word '{word_text}' does not fit. Breaking word loop.")
+                    break
+            
+            if line_words:
+                start_time = line_words[0]['start']
+                end_time = line_words[-1]['end']
+                final_result.append({
+                    'linea': original_line,
+                    'start': start_time,
+                    'end': end_time
+                })
+                previous_end_time = end_time
+                word_idx = temp_word_idx # Update main index
+                logger.debug(f"Successfully matched line {i+1}. Word index is now {word_idx}.")
+            else:
+                logger.warning(f"Could not match any words for line {i+1}: '{line}'. Appending with previous end time.")
+                final_result.append({
+                    'linea': original_line, # Keep the original line text
+                    'start': previous_end_time,
+                    'end': previous_end_time
+                })
 
+        except Exception as e:
+            logger.error(f"An unexpected error occurred at line {i+1}: '{line}'. Error: {e}", exc_info=True)
+            # Add a placeholder to maintain list length
             final_result.append({
                 'linea': original_line,
-                'start': line_words[0]['start'],
-                'end': line_words[-1]['end']
+                'start': previous_end_time,
+                'end': previous_end_time
             })
-            previous_end_time = line_words[-1]['end']
-            word_idx = temp_word_idx # Update main index
-        except (IndexError, KeyError):
-            logger.error(
-                f"The word timestamps list does not match the lyrics. Failed at line: '{line}'", exc_info=True)
-            logger.info(f"Successfully processed {len(final_result)} lines before failure.")
-            break
+            continue
 
-    logger.info("Line timestamps generated.")
+    logger.info(f"Finished generating line timestamps. Processed {len(final_result)} lines.")
     return final_result
 
 

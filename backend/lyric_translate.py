@@ -14,7 +14,8 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 
 # --- Constants ---
-GEMINI_MODEL_NAME = 'gemini-1.5-flash'
+# The model name is now configurable via an environment variable
+GEMINI_MODEL_NAME = os.getenv('GEMINI_MODEL', 'gemini-2.5-flash')
 MAX_RETRIES = 3
 
 def convert_to_romaji(japanese_text: list, kks: kakasi) -> list:
