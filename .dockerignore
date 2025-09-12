@@ -1,0 +1,25 @@
+# Git files
+.git
+.gitignore
+
+# Docker files
+Dockerfile
+.dockerignore
+
+# Python specific
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+venv/
+.venv/
+
+# Node specific
+node_modules/
+npm-debug.log
+
+# Editor and OS specific
+.idea/
+.vscode/
+.DS_Store

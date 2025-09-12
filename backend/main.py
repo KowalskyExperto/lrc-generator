@@ -75,10 +75,19 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 # --- CORS Middleware Configuration ---
+# In a production environment, this should be a specific, trusted domain.
+# We use an environment variable to set this flexibly.
+frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
+
 origins = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
+    frontend_url,
+    # Add other allowed origins if necessary
 ]
+
+# Add a fallback for local development if the env var is not set.
+if not os.getenv("FRONTEND_URL"):
+    origins.append("http://127.0.0.1:5173")
+
 
 app.add_middleware(
     CORSMiddleware,
