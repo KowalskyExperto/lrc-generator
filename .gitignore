@@ -27,5 +27,13 @@ final.json
 *.txt
 *.lrcROADMAP.md
 
+# Terraform state and provider cache
+.terraform/
+*.tfstate
+*.tfstate.backup
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.backup
+
 # Media assets - should not be committed
 assets/
