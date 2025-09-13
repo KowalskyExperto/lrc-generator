@@ -40,7 +40,6 @@ resource "google_service_account" "github_actions_deployer_sa" {
 # Grant the SA the necessary roles to manage the application resources
 resource "google_project_iam_member" "deployer_roles" {
   for_each = toset([
-    "roles/artifactregistry.writer",
     "roles/run.admin",
     "roles/iam.serviceAccountAdmin",
     "roles/secretmanager.admin",

@@ -4,7 +4,7 @@ resource "google_cloud_run_v2_service" "backend" {
   labels   = local.common_labels
 
   # Ensure the service account and its permissions are created first
-  depends_on = [module.github_cicd]
+  depends_on = [google_artifact_registry_repository_iam_member.deployer_writer]
 
   template {
     containers {
