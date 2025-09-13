@@ -1,6 +1,5 @@
 resource "google_secret_manager_secret" "gemini_api_key" {
   secret_id = "API_KEY_GENAI"
-  labels    = local.common_labels
 
   replication {
     auto {}

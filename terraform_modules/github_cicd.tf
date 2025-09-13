@@ -9,8 +9,8 @@ variable "github_repository" {
 }
 
 resource "google_iam_workload_identity_pool" "github_pool" {
-  workload_identity_pool_id = "github-actions-pool"
-  display_name              = "GitHub Actions Pool"
+  workload_identity_pool_id = "github-actions-main-pool"
+  display_name              = "GitHub Actions Main Pool"
   description               = "Pool for authenticating GitHub Actions workflows."
 }
 
@@ -58,4 +58,9 @@ resource "google_service_account_iam_member" "github_impersonation" {
   member             = "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.github_pool.name}/attribute.repository/${var.github_repository}"
 
   depends_on = [google_iam_workload_identity_pool_provider.github_provider]
+}
+
+output "deployer_sa_email" {
+  description = "The email of the service account for the CI/CD deployer."
+  value       = google_service_account.github_actions_deployer_sa.email
 }

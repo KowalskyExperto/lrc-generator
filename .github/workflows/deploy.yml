@@ -57,11 +57,11 @@ jobs:
           platforms: linux/amd64
           tags: ${{ secrets.GCP_ARTIFACT_REGISTRY }}/${{ secrets.GCP_PROJECT_ID }}/lrc-generator-repo/lrc-generator-frontend:latest
 
-  # This job deploys the infrastructure using Terraform
-  deploy-infrastructure:
-    name: Deploy Terraform Infrastructure
+  # This job deploys the application infrastructure (Cloud Run services)
+  deploy-app-infrastructure:
+    name: Deploy App Infrastructure
     runs-on: ubuntu-latest
-    needs: build-and-push-images # This job will only run if the previous job succeeds
+    needs: build-and-push-images # This job will only run if the images are built successfully
 
     permissions:
       contents: 'read'
@@ -83,12 +83,12 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
-      # Initialize Terraform
-      - name: Terraform Init
-        working-directory: ./terraform
+      # Initialize Terraform for the app infrastructure
+      - name: Terraform Init (App)
+        working-directory: ./terraform/app
         run: terraform init
 
-      # Apply Terraform
-      - name: Terraform Apply
-        working-directory: ./terraform
-        run: terraform apply -auto-approve -var="gcp_project_id=${{ secrets.GCP_PROJECT_ID }}" -var="github_repository=KowalskyExperto/lrc-generator"
+      # Apply Terraform for the app infrastructure
+      - name: Terraform Apply (App)
+        working-directory: ./terraform/app
+        run: terraform apply -auto-approve -var="gcp_project_id=${{ secrets.GCP_PROJECT_ID }}" -var="gcp_region=northamerica-south1" -var="repo_name=lrc-generator-repo" -var="domain_name=${{ secrets.DOMAIN_NAME }}" -var='common_labels={"project":"lrc-generator"}'

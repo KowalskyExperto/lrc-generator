@@ -1,10 +1,21 @@
+terraform {
+  required_providers {
+    google = {
+      source  = "hashicorp/google"
+      version = "~> 7.2"
+    }
+  }
+}
+
+provider "google" {
+  project = var.gcp_project_id
+  region  = var.gcp_region
+}
+
 resource "google_cloud_run_v2_service" "backend" {
   name     = "lrc-generator-backend"
   location = var.gcp_region
-  labels   = local.common_labels
-
-  # Ensure the service account and its permissions are created first
-  depends_on = [google_artifact_registry_repository_iam_member.deployer_writer]
+  labels   = var.common_labels
 
   template {
     containers {
@@ -15,32 +26,28 @@ resource "google_cloud_run_v2_service" "backend" {
 
       env {
         name  = "FRONTEND_URL"
-        # Using a safe default. This will be updated later.
-        value = "http://localhost:8080"
+        value = "https://lrc-gen.${var.domain_name}"
       }
 
       env {
         name = "API_KEY_GENAI"
         value_source {
           secret_key_ref {
-            secret  = google_secret_manager_secret.gemini_api_key.secret_id
+            secret  = "API_KEY_GENAI"
             version = "latest"
           }
         }
       }
     }
 
-    service_account = google_service_account.backend_sa.email
+    service_account = "lrc-generator-backend-sa@${var.gcp_project_id}.iam.gserviceaccount.com"
   }
 }
 
 resource "google_cloud_run_v2_service" "frontend" {
   name     = "lrc-generator-frontend"
   location = var.gcp_region
-  labels   = local.common_labels
-
-  # Ensure the backend service and its permissions are created first
-  depends_on = [google_cloud_run_v2_service_iam_member.backend_private_access]
+  labels   = var.common_labels
 
   template {
     containers {
@@ -51,15 +58,16 @@ resource "google_cloud_run_v2_service" "frontend" {
 
       env {
         name  = "VITE_API_BASE_URL"
-        value = google_cloud_run_v2_service.backend.uri
+        value = "https://lrc-gen-api.${var.domain_name}"
       }
     }
 
-    service_account = google_service_account.frontend_sa.email
+    service_account = "lrc-generator-frontend-sa@${var.gcp_project_id}.iam.gserviceaccount.com"
   }
 }
 
-# Allow unauthenticated access to the frontend service so users can visit the website
+# --- IAM Bindings ---
+
 resource "google_cloud_run_v2_service_iam_member" "frontend_public_access" {
   project  = google_cloud_run_v2_service.frontend.project
   location = google_cloud_run_v2_service.frontend.location
@@ -68,11 +76,40 @@ resource "google_cloud_run_v2_service_iam_member" "frontend_public_access" {
   member   = "allUsers"
 }
 
-# Allow ONLY the frontend service to access the backend service
 resource "google_cloud_run_v2_service_iam_member" "backend_private_access" {
   project  = google_cloud_run_v2_service.backend.project
   location = google_cloud_run_v2_service.backend.location
   name     = google_cloud_run_v2_service.backend.name
   role     = "roles/run.invoker"
-  member   = "serviceAccount:${google_service_account.frontend_sa.email}"
+  member   = "serviceAccount:lrc-generator-frontend-sa@${var.gcp_project_id}.iam.gserviceaccount.com"
+}
+
+# --- Domain Mappings ---
+
+resource "google_cloud_run_domain_mapping" "backend_domain" {
+  location = var.gcp_region
+  name     = "lrc-gen-api.${var.domain_name}"
+
+  metadata {
+    namespace = var.gcp_project_id
+    labels    = var.common_labels
+  }
+
+  spec {
+    route_name = google_cloud_run_v2_service.backend.name
+  }
+}
+
+resource "google_cloud_run_domain_mapping" "frontend_domain" {
+  location = var.gcp_region
+  name     = "lrc-gen.${var.domain_name}"
+
+  metadata {
+    namespace = var.gcp_project_id
+    labels    = var.common_labels
+  }
+
+  spec {
+    route_name = google_cloud_run_v2_service.frontend.name
+  }
 }
