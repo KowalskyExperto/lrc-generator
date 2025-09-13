@@ -26,7 +26,15 @@ interface Metadata {
 
 type ActiveTab = 'upload' | 'edit' | 'review';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+declare global {
+  interface Window {
+    config?: {
+      API_BASE_URL?: string;
+    };
+  }
+}
+
+const API_BASE_URL = window.config?.API_BASE_URL || 'http://localhost:8000';
 
 // --- Main App Component ---
 function App() {
