@@ -1,38 +1,60 @@
-
 # Lyric Processing Toolkit
 
-This project provides a powerful suite of command-line tools designed to automate the creation of synchronized and translated song lyrics.
+This project has evolved from a set of command-line scripts into a full-featured web application designed to automate the creation of synchronized and translated song lyrics.
 
 ## Project Vision
 
-The ultimate goal of this repository is to build a complete, cloud-native application on Google Cloud Platform (GCP). This application will provide a user-friendly interface to:
+The ultimate goal of this repository is to build a complete, cloud-native application on Google Cloud Platform (GCP). This application provides a user-friendly interface to:
 
-1.  **Upload** a song file.
-2.  **Provide** the corresponding lyrics.
-3.  **Automate** the translation and timestamp generation.
-4.  **Review and Edit** the generated lyrics or timestamps if corrections are needed.
-5.  **Generate** a final file with the synchronized lyrics embedded.
+1.  **Upload** a song file and provide the corresponding lyrics.
+2.  **Automate** timestamp generation and multi-language translation.
+3.  **Review and Edit** the generated lyrics, translations, and timestamps in an intuitive interface.
+4.  **Generate and Download** the final audio file with the synchronized lyrics embedded.
 
-This repository represents the foundational first steps toward that goal, currently existing as a set of powerful command-line scripts.
+## Features
 
-## Current Features
+-   **Web-Based UI:** A modern React frontend for a seamless user experience.
+-   **Forced Alignment:** Uses `stable-whisper` to accurately synchronize an audio file with its corresponding lyric text.
+-   **AI-Powered Translation:** Leverages the Google Gemini API to translate Japanese lyrics into Romaji and English, including a refinement pass for more natural-sounding translations.
+-   **Interactive Editing:** A full-featured table editor to modify timestamps, lyrics, and translations.
+-   **LRC Preview:** See a real-time preview of the final `.lrc` file as you make changes.
+-   **Lyric Embedding:** Embeds the final, synchronized lyrics directly into the audio file's metadata.
 
--   **Forced Alignment:** Uses `stable-whisper` to accurately synchronize an audio file with its corresponding lyric text, generating precise start times for each line.
--   **AI-Powered Translation:** Leverages the Google Gemini API to translate Japanese lyrics into Romaji and then into English.
--   **Two-Step Translation Refinement:** Implements a sophisticated workflow that first translates the lyrics and then uses a second AI pass to review and improve the translation for a more natural and contextual feel.
--   **LRC-Ready Output:** The alignment script generates a CSV with pre-formatted `minutes`, `seconds`, and `milliseconds` components, ready for easy conversion into a standard `.lrc` file.
--   **Cloud Integration:** Automatically uploads the multi-language translation results (Japanese, Romaji, English, Improved English) to Google Drive as a Google Sheet for easy access and collaboration.
--   **Flexible CLI:** Both scripts are built with command-line interfaces, allowing you to easily process different songs without modifying the source code.
+## Technology Stack
 
-## Technologies Used
+The application is containerized using Docker for easy setup and deployment.
 
--   stable-whisper for accurate word-level audio alignment.
--   Google Gemini API for high-quality translation and refinement.
--   Pandas for data manipulation and CSV handling.
--   PyDrive2 for seamless Google Drive integration.
--   PyKakasi for Japanese to Romaji conversion.
+-   **Frontend:**
+    -   React
+    -   TypeScript
+    -   Vite
+-   **Backend:**
+    -   Python 3
+    -   FastAPI
+    -   `stable-whisper` for audio alignment.
+    -   `google-generativeai` for translation.
+    -   `mutagen` for embedding lyrics.
+-   **Orchestration:**
+    -   Docker Compose
 
-## Setup
+## Project Structure
+
+```
+lrc-generator/
+├── backend/         # FastAPI application and processing logic
+├── frontend/        # React user interface
+├── docker-compose.yml # Orchestrates the frontend and backend services
+└── ...
+```
+
+## Setup and Usage
+
+### Prerequisites
+
+-   Docker
+-   Docker Compose
+
+### Configuration
 
 1.  **Clone the repository:**
     ```bash
@@ -40,45 +62,50 @@ This repository represents the foundational first steps toward that goal, curren
     cd lrc-generator
     ```
 
-2.  **Install dependencies:**
+2.  **Configure Environment Variables:**
+    Create a `.env` file in the root of the project. This file will be used by the backend service inside the Docker container.
+    ```env
+    # .env
+    API_KEY_GENAI="your_gemini_api_key_here"
+    ```
+    Replace `"your_gemini_api_key_here"` with your actual Google Gemini API key.
+
+### Running the Application
+
+1.  **Start the services:**
+    Use Docker Compose to build and start the frontend and backend containers.
+    ```bash
+    docker-compose up --build
+    ```
+
+2.  **Access the application:**
+    Open your web browser and navigate to:
+    [http://localhost:5173](http://localhost:5173)
+
+## Standalone CLI Scripts
+
+The core logic of the backend is also available as standalone Python scripts. These were the original foundation of the project.
+
+### Setup (for scripts only)
+
+1.  **Install dependencies:**
     It's recommended to use a virtual environment.
     ```bash
     # You will need to create this file based on your project's libraries
     pip install -r requirements.txt
     ```
 
-3.  **Enable Google Drive API and Download Credentials:**
-    To allow the script to upload files to your Google Drive, you need to configure API access.
-    - Go to the Google Cloud Console and create a new project (or select an existing one).
-    - In the navigation menu, go to **APIs & Services > Library** and enable the **Google Drive API**.
-    - Go to **APIs & Services > Credentials**. Click **Create Credentials** and select **OAuth client ID**.
-    - Choose **Desktop app** as the application type and give it a name.
-    - After creation, click the **Download JSON** icon for the new client ID.
-    - Rename the downloaded file to `client_secrets.json` and place it in the root directory of this project.
+2.  **Configure Environment Variables:**
+    The scripts also use the `.env` file for the Gemini API key. The translation script previously used a `client_secrets.json` for Google Drive integration, but that feature is not used in the main web application.
 
-    > **Note on Permissions:** When you run `lyric_translate.py` for the first time, your browser will open and ask you to grant permission. The script requires the `https://www.googleapis.com/auth/drive` scope, which allows it to create and manage files in your Google Drive.
+### Usage
 
-4.  **Configure Environment Variables:**
-    Create a `.env` file in the root of the project and add your API keys:
-    ```env
-    API_KEY_GENAI="your_gemini_api_key_here"
-    ID_FOLDER="your_google_drive_folder_id_here"
+-   **Generating Timestamps (`forced_alignment.py`):**
+    ```bash
+    python backend/forced_alignment.py path/to/song.mp3 path/to/lyrics.txt -o song_timestamps.csv
     ```
 
-## Usage
-
-### 1. Generating Timestamps (`forced_alignment.py`)
-
-This script takes an audio file and a plain text lyrics file and outputs a CSV with synchronized timestamps.
-
-```bash
-python forced_alignment.py path/to/song.mp3 path/to/lyrics.txt -o song_timestamps.csv
-```
-
-### 2. Translating Lyrics (`lyric_translate.py`)
-
-This script takes a Japanese lyrics file, translates it, and uploads the result to Google Drive. The song name should be wrapped in quotes if it contains spaces.
-
-```bash
-python lyric_translate.py path/to/japanese_lyrics.txt "Artist - Song Title"
-```
+-   **Translating Lyrics (`lyric_translate.py`):**
+    ```bash
+    python backend/lyric_translate.py path/to/japanese_lyrics.txt "Artist - Song Title"
+    ```
