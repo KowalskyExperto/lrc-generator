@@ -2,7 +2,7 @@ import React from 'react';
 
 interface UploadTabProps {
   handleSubmit: (event: React.FormEvent) => void;
-  handleFileChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onAudioFileChange: (file: File | null) => void;
   setLyricsText: (text: string) => void;
   lyricsText: string;
   isLoading: boolean;
@@ -11,12 +11,16 @@ interface UploadTabProps {
 
 const UploadTab: React.FC<UploadTabProps> = ({ 
   handleSubmit, 
-  handleFileChange, 
+  onAudioFileChange, 
   setLyricsText, 
   lyricsText, 
   isLoading, 
   error 
 }) => {
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    onAudioFileChange(event.target.files ? event.target.files[0] : null);
+  };
+
   return (
     <form className="upload-form card" onSubmit={handleSubmit}>
       <div className="upload-form__group">

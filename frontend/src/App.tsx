@@ -1,8 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import './App.css';
 import UploadTab from './components/UploadTab';
 import EditTab from './components/EditTab';
 import ReviewTab from './components/ReviewTab';
+import AudioPlayer from './components/AudioPlayer'; // Import AudioPlayer
 
 // --- Type Definitions ---
 interface LyricLine {
@@ -47,11 +48,25 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<ActiveTab>('upload');
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files) {
-      setAudioFile(event.target.files[0]);
-    }
+  const handleAudioFileChange = (file: File | null) => {
+    setAudioFile(file);
   };
+
+  const audioSrc = useMemo(() => {
+    if (audioFile) {
+      return URL.createObjectURL(audioFile);
+    }
+    return null;
+  }, [audioFile]);
+
+  // Clean up the object URL when the component unmounts or audioFile changes
+  useEffect(() => {
+    return () => {
+      if (audioSrc) {
+        URL.revokeObjectURL(audioSrc);
+      }
+    };
+  }, [audioSrc]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -204,7 +219,7 @@ function App() {
         {activeTab === 'upload' && (
           <UploadTab 
             handleSubmit={handleSubmit}
-            handleFileChange={handleFileChange}
+            onAudioFileChange={handleAudioFileChange}
             setLyricsText={setLyricsText}
             lyricsText={lyricsText}
             isLoading={isLoading}
@@ -231,6 +246,9 @@ function App() {
           />
         )}
       </main>
+
+      {/* Render AudioPlayer globally */}
+      <AudioPlayer audioSrc={audioSrc} />
     </div>
   );
 }

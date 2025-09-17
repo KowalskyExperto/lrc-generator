@@ -8,7 +8,7 @@ interface ReviewTabProps {
 
 const ReviewTab: React.FC<ReviewTabProps> = ({ lrcPreview, handleFinalize, isFinalizing }) => {
   return (
-    <div className="lrc-preview">
+    <div className="lrc-preview" style={{ paddingBottom: '6rem' }}>
       <h2 className="lrc-preview__title">LRC Preview</h2>
       <pre className="lrc-preview__content">{lrcPreview}</pre>
       <button onClick={handleFinalize} className="lrc-preview__download" disabled={isFinalizing}>
