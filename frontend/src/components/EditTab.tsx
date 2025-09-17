@@ -29,6 +29,7 @@ interface EditTabProps {
   handleMetadataChange: (field: keyof Metadata, value: string) => void;
   handleSelectionChange: (rowIndex: number, lyricSource: 'English' | 'Improved English') => void;
   handleSetAllChoices: (lyricSource: 'English' | 'Improved English') => void;
+  currentTime: number; // Add currentTime prop
 }
 
 const EditTab: React.FC<EditTabProps> = ({ 
@@ -37,8 +38,17 @@ const EditTab: React.FC<EditTabProps> = ({
   handleLyricEdit, 
   handleMetadataChange, 
   handleSelectionChange, 
-  handleSetAllChoices
+  handleSetAllChoices,
+  currentTime // Destructure currentTime
 }) => {
+
+  const getLyricTimeInSeconds = (line: LyricLine): number => {
+    const minutes = parseInt(line.minutes || '0', 10);
+    const seconds = parseInt(line.seconds || '0', 10);
+    const milliseconds = parseInt(line.milliseconds || '0', 10);
+    return minutes * 60 + seconds + milliseconds / 1000;
+  };
+
   return (
     <>
       <div style={{ paddingBottom: '6rem' }}> {/* Wrapper for content with bottom padding */}
@@ -73,8 +83,13 @@ const EditTab: React.FC<EditTabProps> = ({
               </tr>
             </thead>
             <tbody>
-              {result.map((row, rowIndex) => (
-                <tr key={rowIndex}>
+              {result.map((row, rowIndex) => {
+                const lineStartTime = getLyricTimeInSeconds(row);
+                const nextLine = result[rowIndex + 1];
+                const lineEndTime = nextLine ? getLyricTimeInSeconds(nextLine) : Infinity;
+                const isActive = currentTime >= lineStartTime && currentTime < lineEndTime;
+                return (
+                  <tr key={rowIndex} className={isActive ? 'lyrics-editor__row--active' : ''}>
                   <td><input className="lyrics-editor__input" value={row.minutes} onChange={(e) => handleLyricEdit(rowIndex, 'minutes', e.target.value)} /></td>
                   <td><input className="lyrics-editor__input" value={row.seconds} onChange={(e) => handleLyricEdit(rowIndex, 'seconds', e.target.value)} /></td>
                   <td><input className="lyrics-editor__input" value={row.milliseconds} onChange={(e) => handleLyricEdit(rowIndex, 'milliseconds', e.target.value)} /></td>
@@ -90,7 +105,7 @@ const EditTab: React.FC<EditTabProps> = ({
                   </td>
                   <td><AutoGrowTextarea className="lyrics-editor__input lyrics-editor__input--wrapping" value={row.selectedLyric} onChange={(e) => handleLyricEdit(rowIndex, 'selectedLyric', e.target.value)} rows={1} /></td>
                 </tr>
-              ))}
+              )})}
             </tbody>
           </table>
         </div>

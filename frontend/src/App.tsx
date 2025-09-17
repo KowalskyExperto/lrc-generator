@@ -47,6 +47,7 @@ function App() {
   const [isFinalizing, setIsFinalizing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<ActiveTab>('upload');
+  const [currentTime, setCurrentTime] = useState<number>(0); // New state for current audio time
 
   const handleAudioFileChange = (file: File | null) => {
     setAudioFile(file);
@@ -67,6 +68,10 @@ function App() {
       }
     };
   }, [audioSrc]);
+
+  const handleTimeUpdate = (time: number) => {
+    setCurrentTime(time);
+  };
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -235,6 +240,7 @@ function App() {
             handleMetadataChange={handleMetadataChange}
             handleSelectionChange={handleSelectionChange}
             handleSetAllChoices={handleSetAllChoices}
+            currentTime={currentTime}
           />
         )}
 
@@ -248,7 +254,7 @@ function App() {
       </main>
 
       {/* Render AudioPlayer globally */}
-      <AudioPlayer audioSrc={audioSrc} />
+      <AudioPlayer audioSrc={audioSrc} onTimeUpdate={handleTimeUpdate} />
     </div>
   );
 }
