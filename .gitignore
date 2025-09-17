@@ -1,4 +1,3 @@
-*.json
 # macOS
 # Ignore Finder's custom attributes file.
 .DS_Store
