@@ -1,5 +1,6 @@
 import stable_whisper
 import logging
+import asyncio
 from typing import List, Dict, Any
 from pandas import DataFrame
 import argparse
@@ -161,7 +162,7 @@ def add_detailed_timestamps(
     return processed_data
 
 
-def get_alignment_data(
+async def get_alignment_data(
     audio_path: str,
     lyrics_text: str,
     model_name: str = DEFAULT_MODEL_NAME,
@@ -170,11 +171,13 @@ def get_alignment_data(
     """
     Orchestrates the audio and lyric alignment process and returns the data.
     """
+    loop = asyncio.get_event_loop()
+
     # Step 1: Load the model
-    model = load_model(model_name)
+    model = await loop.run_in_executor(None, load_model, model_name)
 
     # Step 2: Align audio and lyrics
-    alignment_result = align_lyrics(model, audio_path, lyrics_text, language=language)
+    alignment_result = await loop.run_in_executor(None, align_lyrics, model, audio_path, lyrics_text, language)
 
     # Step 3: Extract all words
     all_words: List[Dict[str, Any]] = []

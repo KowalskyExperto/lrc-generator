@@ -2,6 +2,7 @@ import argparse
 import google.generativeai as genai
 import os
 import logging
+import asyncio
 
 from dotenv import load_dotenv
 from itertools import zip_longest
@@ -20,10 +21,24 @@ MAX_RETRIES = 3
 
 def convert_to_romaji(japanese_text: list, kks: kakasi) -> list:
     """Converts a list of Japanese strings to Romaji."""
-    return [' '.join(word['hepburn'] for word in kks.convert(line)) for line in japanese_text]
+    romaji_lines = []
+    for line in japanese_text:
+        converted_words = []
+        for word_info in kks.convert(line):
+            hepburn_word = word_info.get('hepburn')
+            if hepburn_word and hepburn_word.strip(): # Ensure it's not None or empty after stripping
+                converted_words.append(hepburn_word.strip())
+        
+        # Now, process converted_words to remove potential duplicates at the end
+        # This is a heuristic for "last word added twice"
+        if len(converted_words) >= 2 and converted_words[-1] == converted_words[-2]:
+            converted_words.pop() # Remove the last word if it's a duplicate of the second to last
+
+        romaji_lines.append(' '.join(converted_words))
+    return romaji_lines
 
 
-def translate_lyrics(japanese_lyrics: str, model: genai.GenerativeModel) -> list:
+async def translate_lyrics(japanese_lyrics: str, model: genai.GenerativeModel) -> list:
     """Gets the English translation from Gemini."""
     prompt = f"""
 **ROLE**: You are a precise, line-by-line translator.
@@ -39,12 +54,14 @@ def translate_lyrics(japanese_lyrics: str, model: genai.GenerativeModel) -> list
 {japanese_lyrics}
 ---
     """
-    response = model.generate_content(prompt)
+    loop = asyncio.get_event_loop()
+    response = await loop.run_in_executor(None, model.generate_content, prompt)
     translated_text = response.text.strip()
     return translated_text.strip().split('\n')
 
 
-def review_and_improve_translation(lyrics_to_review: str, model: genai.GenerativeModel) -> list:
+
+async def review_and_improve_translation(lyrics_to_review: str, model: genai.GenerativeModel) -> list:
     """Reviews and improves a Japanese-to-English song translation."""
     prompt = f"""
 **ROLE**: You are a precise, line-by-line translation reviewer.
@@ -60,9 +77,11 @@ def review_and_improve_translation(lyrics_to_review: str, model: genai.Generativ
 {lyrics_to_review}
 ---
 """
-    response = model.generate_content(prompt)
+    loop = asyncio.get_event_loop()
+    response = await loop.run_in_executor(None, model.generate_content, prompt)
     translated_text = response.text.strip()
     return translated_text.strip().split('\n')
+
 
 
 def create_dataframe(lyrics_jap: list, lyrics_rom: list, lyrics_eng: list, lyrics_eng_improved: list) -> DataFrame:
@@ -84,7 +103,7 @@ def combine_jap_eng_for_prompt(lyrics_jap: list, lyrics_eng: list) -> str:
 
 # Main workflow functions
 
-def get_translation_data(full_lyrics: str, api_key_genai: str) -> DataFrame:
+async def get_translation_data(full_lyrics: str, api_key_genai: str) -> DataFrame:
     """
     Processes lyrics to generate translations and returns them as a DataFrame.
     Includes a retry mechanism for each translation step.
@@ -101,7 +120,7 @@ def get_translation_data(full_lyrics: str, api_key_genai: str) -> DataFrame:
     lyrics_eng = []
     for attempt in range(MAX_RETRIES):
         logger.debug(f"Initial translation attempt {attempt + 1} of {MAX_RETRIES}...")
-        lyrics_eng = translate_lyrics(full_lyrics, model)
+        lyrics_eng = await translate_lyrics(full_lyrics, model)
         if len(lyrics_jap) == len(lyrics_eng):
             logger.info("Initial translation line count matches.")
             break
@@ -118,7 +137,7 @@ def get_translation_data(full_lyrics: str, api_key_genai: str) -> DataFrame:
     lyrics_eng_improved = []
     for attempt in range(MAX_RETRIES):
         logger.debug(f"Improved translation attempt {attempt + 1} of {MAX_RETRIES}...")
-        lyrics_eng_improved = review_and_improve_translation(lyrics_to_review, model)
+        lyrics_eng_improved = await review_and_improve_translation(lyrics_to_review, model)
         if len(lyrics_jap) == len(lyrics_eng_improved):
             logger.info("Improved translation line count matches.")
             break

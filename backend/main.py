@@ -7,6 +7,7 @@ import glob
 import pandas as pd
 import mutagen
 import json
+import asyncio
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -158,15 +159,21 @@ async def process_lyrics(
             logger.error("API_KEY_GENAI environment variable not set.")
             raise HTTPException(status_code=500, detail="Server is missing API key configuration.")
 
-        # --- Run Processing Functions ---
-        logger.info("Starting forced alignment...")
-        alignment_data = get_alignment_data(audio_path=temp_audio_path, lyrics_text=lyrics_text)
+        # --- Run Processing Functions in Parallel ---
+        logger.info("Starting forced alignment and translation in parallel...")
+        alignment_task = get_alignment_data(audio_path=temp_audio_path, lyrics_text=lyrics_text)
+        translation_task = get_translation_data(full_lyrics=lyrics_text, api_key_genai=api_key_genai)
+
+        try:
+            alignment_data, translation_df = await asyncio.gather(alignment_task, translation_task)
+        except Exception as e:
+            logger.error(f"Error during parallel execution of alignment and translation: {e}", exc_info=True)
+            raise HTTPException(status_code=500, detail=f"Error during parallel processing: {e}")
+
         if not alignment_data:
+            logger.error("Forced alignment failed to produce a result.")
             raise HTTPException(status_code=500, detail="Forced alignment failed to produce a result.")
         alignment_df = pd.DataFrame(alignment_data)
-
-        logger.info("Starting translation...")
-        translation_df = get_translation_data(full_lyrics=lyrics_text, api_key_genai=api_key_genai)
 
         # --- Merge and Return Results ---
         logger.info("Merging alignment and translation data...")
@@ -184,11 +191,14 @@ async def process_lyrics(
             "metadata": metadata
         }
 
+    except HTTPException:
+        # Re-raise HTTPExceptions as they are already handled with appropriate status codes and details
+        raise
     except Exception as e:
-        logger.error(f"An error occurred during processing: {e}", exc_info=True)
-        # Clean up the directory on failure before raising the exception
+        logger.error(f"An unexpected error occurred during lyrics processing: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"An internal server error occurred during lyrics processing: {e}")
+    finally:
         cleanup_temp_dir(temp_dir)
-        raise HTTPException(status_code=500, detail=f"An internal server error occurred: {e}")
 
 @app.post("/generate-and-embed")
 async def generate_and_embed(
