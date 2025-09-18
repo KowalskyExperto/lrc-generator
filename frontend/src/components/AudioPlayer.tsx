@@ -5,6 +5,8 @@ interface AudioPlayerProps {
   audioSrc: string | null;
   onTimeUpdate?: (time: number) => void;
   onDurationChange?: (duration: number) => void;
+  onSetTimestamp: (time: number) => void;
+  isLineSelected: boolean;
 }
 
 const formatTime = (seconds: number): string => {
@@ -14,7 +16,7 @@ const formatTime = (seconds: number): string => {
   return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
 };
 
-const AudioPlayer: React.FC<AudioPlayerProps> = ({ audioSrc, onTimeUpdate, onDurationChange }) => {
+const AudioPlayer: React.FC<AudioPlayerProps> = ({ audioSrc, onTimeUpdate, onDurationChange, onSetTimestamp, isLineSelected }) => {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -106,6 +108,15 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ audioSrc, onTimeUpdate, onDur
             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
           </svg>
         )}
+      </button>
+
+      <button 
+        onClick={() => onSetTimestamp(audioRef.current?.currentTime ?? 0)}
+        disabled={!isLineSelected}
+        className="mark-time-button"
+        aria-label="Mark Time"
+      >
+        Mark Time
       </button>
 
       <div className="audio-player-progress">

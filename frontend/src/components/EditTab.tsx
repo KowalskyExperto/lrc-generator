@@ -30,6 +30,13 @@ interface EditTabProps {
   handleSelectionChange: (rowIndex: number, lyricSource: 'English' | 'Improved English') => void;
   handleSetAllChoices: (lyricSource: 'English' | 'Improved English') => void;
   currentTime: number; // Add currentTime prop
+  selectedLineIndex: number | null;
+  handleLineSelect: (index: number) => void;
+  handleResetAll: () => void;
+  handleResetTimestamps: () => void;
+  handleResetRomaji: () => void;
+  handleResetLine: (index: number) => void;
+  handleTimestampBlur: (rowIndex: number, field: 'minutes' | 'seconds' | 'milliseconds') => void;
 }
 
 const EditTab: React.FC<EditTabProps> = ({ 
@@ -39,7 +46,14 @@ const EditTab: React.FC<EditTabProps> = ({
   handleMetadataChange, 
   handleSelectionChange, 
   handleSetAllChoices,
-  currentTime // Destructure currentTime
+  currentTime, // Destructure currentTime
+  selectedLineIndex,
+  handleLineSelect,
+  handleResetAll,
+  handleResetTimestamps,
+  handleResetRomaji,
+  handleResetLine,
+  handleTimestampBlur
 }) => {
 
   const getLyricTimeInSeconds = (line: LyricLine): number => {
@@ -67,11 +81,20 @@ const EditTab: React.FC<EditTabProps> = ({
           <input className="metadata-editor__input" value={metadata.album} onChange={(e) => handleMetadataChange('album', e.target.value)} />
         </div>
         </div>
+        <div className="card actions-toolbar">
+          <h2 className="actions-toolbar__title">Reset Actions</h2>
+          <div className="actions-toolbar__buttons">
+            <button onClick={handleResetAll}>Reset All</button>
+            <button onClick={handleResetTimestamps}>Reset Timestamps</button>
+            <button onClick={handleResetRomaji}>Reset Romaji</button>
+          </div>
+        </div>
         <div className="lyrics-editor">
           <h2 className="lyrics-editor__title">Editable Lyrics</h2>
           <table className="lyrics-editor__table">
             <thead>
               <tr>
+                <th></th>
                 <th>M</th><th>S</th><th>MS</th><th>Japanese</th><th>Romaji</th>
                 <th>
                   <div className="lyrics-editor__set-all-choice">
@@ -80,6 +103,7 @@ const EditTab: React.FC<EditTabProps> = ({
                   </div>
                 </th>
                 <th>Final LRC Lyric</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -90,9 +114,17 @@ const EditTab: React.FC<EditTabProps> = ({
                 const isActive = currentTime >= lineStartTime && currentTime < lineEndTime;
                 return (
                   <tr key={rowIndex} className={isActive ? 'lyrics-editor__row--active' : ''}>
-                  <td><input className="lyrics-editor__input" value={row.minutes} onChange={(e) => handleLyricEdit(rowIndex, 'minutes', e.target.value)} /></td>
-                  <td><input className="lyrics-editor__input" value={row.seconds} onChange={(e) => handleLyricEdit(rowIndex, 'seconds', e.target.value)} /></td>
-                  <td><input className="lyrics-editor__input" value={row.milliseconds} onChange={(e) => handleLyricEdit(rowIndex, 'milliseconds', e.target.value)} /></td>
+                  <td>
+                    <input 
+                      type="radio" 
+                      name="line-select" 
+                      checked={selectedLineIndex === rowIndex}
+                      onChange={() => handleLineSelect(rowIndex)}
+                    />
+                  </td>
+                  <td><input className="lyrics-editor__input" value={row.minutes} onChange={(e) => handleLyricEdit(rowIndex, 'minutes', e.target.value)} onBlur={() => handleTimestampBlur(rowIndex, 'minutes')}/></td>
+                  <td><input className="lyrics-editor__input" value={row.seconds} onChange={(e) => handleLyricEdit(rowIndex, 'seconds', e.target.value)} onBlur={() => handleTimestampBlur(rowIndex, 'seconds')}/></td>
+                  <td><input className="lyrics-editor__input" value={row.milliseconds} onChange={(e) => handleLyricEdit(rowIndex, 'milliseconds', e.target.value)} onBlur={() => handleTimestampBlur(rowIndex, 'milliseconds')} /></td>
                   <td><div className="lyrics-editor__input">{row.Japanese}</div></td>
                   <td><AutoGrowTextarea className="lyrics-editor__input lyrics-editor__input--wrapping" value={row.Romaji} onChange={(e) => handleLyricEdit(rowIndex, 'Romaji', e.target.value)} rows={1} /></td>
                   <td>
@@ -104,6 +136,7 @@ const EditTab: React.FC<EditTabProps> = ({
                     )}
                   </td>
                   <td><AutoGrowTextarea className="lyrics-editor__input lyrics-editor__input--wrapping" value={row.selectedLyric} onChange={(e) => handleLyricEdit(rowIndex, 'selectedLyric', e.target.value)} rows={1} /></td>
+                  <td><button onClick={() => handleResetLine(rowIndex)}>Reset</button></td>
                 </tr>
               )})}
             </tbody>

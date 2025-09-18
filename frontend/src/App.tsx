@@ -42,12 +42,14 @@ function App() {
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [lyricsText, setLyricsText] = useState<string>('');
   const [result, setResult] = useState<LyricLine[] | null>(null);
+  const [originalResult, setOriginalResult] = useState<LyricLine[] | null>(null);
   const [metadata, setMetadata] = useState<Metadata | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isFinalizing, setIsFinalizing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<ActiveTab>('upload');
   const [currentTime, setCurrentTime] = useState<number>(0); // New state for current audio time
+  const [selectedLineIndex, setSelectedLineIndex] = useState<number | null>(null);
 
   const handleAudioFileChange = (file: File | null) => {
     setAudioFile(file);
@@ -71,6 +73,28 @@ function App() {
 
   const handleTimeUpdate = (time: number) => {
     setCurrentTime(time);
+  };
+
+  const handleLineSelect = (index: number) => {
+    setSelectedLineIndex(index);
+  };
+
+  const handleSetTimestamp = (time: number) => {
+    if (selectedLineIndex === null || !result) return;
+
+    const minutes = Math.floor(time / 60).toString().padStart(2, '0');
+    const seconds = Math.floor(time % 60).toString().padStart(2, '0');
+    const milliseconds = Math.round((time % 1) * 1000).toString().padStart(3, '0');
+
+    const newData = [...result];
+    const updatedLine = { ...newData[selectedLineIndex] };
+
+    updatedLine.minutes = minutes;
+    updatedLine.seconds = seconds;
+    updatedLine.milliseconds = milliseconds;
+
+    newData[selectedLineIndex] = updatedLine;
+    setResult(newData);
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -107,6 +131,7 @@ function App() {
       }));
 
       setResult(processedData);
+      setOriginalResult(processedData);
       setMetadata(data.metadata);
       setActiveTab('edit');
     } catch (err: any) {
@@ -118,9 +143,49 @@ function App() {
 
   const handleLyricEdit = (rowIndex: number, field: keyof LyricLine, value: string) => {
     if (!result) return;
+
+    // Validate and update timestamp fields
+    if (field === 'minutes' || field === 'seconds') {
+      if (!/^\d*$/.test(value) || value.length > 2) {
+        return; // Only allow numbers, max 2 digits
+      }
+    } else if (field === 'milliseconds') {
+      if (!/^\d*$/.test(value) || value.length > 3) {
+        return; // Only allow numbers, max 3 digits
+      }
+    }
+
+    // Create a new array and update the specific field for the specific line
     const newData = [...result];
-    newData[rowIndex] = { ...newData[rowIndex], [field]: value };
+    newData[rowIndex] = {
+      ...newData[rowIndex],
+      [field]: value,
+    };
+
     setResult(newData);
+  };
+
+  const handleTimestampBlur = (rowIndex: number, field: 'minutes' | 'seconds' | 'milliseconds') => {
+    if (!result) return;
+
+    const line = result[rowIndex];
+    const value = line[field];
+    let padLength: number | null = null;
+
+    if (field === 'minutes' || field === 'seconds') {
+      padLength = 2;
+    } else if (field === 'milliseconds') {
+      padLength = 3;
+    }
+
+    if (padLength) {
+      const formattedValue = value.padStart(padLength, '0');
+      if (formattedValue !== value) {
+        const newData = [...result];
+        newData[rowIndex] = { ...newData[rowIndex], [field]: formattedValue };
+        setResult(newData);
+      }
+    }
   };
 
   const handleMetadataChange = (field: keyof Metadata, value: string) => {
@@ -188,6 +253,38 @@ function App() {
     }
   };
 
+  const handleResetAll = () => {
+    if (!originalResult) return;
+    setResult([...originalResult]);
+  };
+
+  const handleResetTimestamps = () => {
+    if (!result || !originalResult) return;
+    const newData = result.map((line, index) => ({
+      ...line,
+      minutes: originalResult[index].minutes,
+      seconds: originalResult[index].seconds,
+      milliseconds: originalResult[index].milliseconds,
+    }));
+    setResult(newData);
+  };
+
+  const handleResetRomaji = () => {
+    if (!result || !originalResult) return;
+    const newData = result.map((line, index) => ({
+      ...line,
+      Romaji: originalResult[index].Romaji,
+    }));
+    setResult(newData);
+  };
+
+  const handleResetLine = (rowIndex: number) => {
+    if (!result || !originalResult) return;
+    const newData = [...result];
+    newData[rowIndex] = { ...originalResult[rowIndex] };
+    setResult(newData);
+  };
+
   const lrcPreview = useMemo(() => {
     if (!result || !metadata) return "";
     
@@ -241,6 +338,13 @@ function App() {
             handleSelectionChange={handleSelectionChange}
             handleSetAllChoices={handleSetAllChoices}
             currentTime={currentTime}
+            selectedLineIndex={selectedLineIndex}
+            handleLineSelect={handleLineSelect}
+            handleResetAll={handleResetAll}
+            handleResetTimestamps={handleResetTimestamps}
+            handleResetRomaji={handleResetRomaji}
+            handleResetLine={handleResetLine}
+            handleTimestampBlur={handleTimestampBlur}
           />
         )}
 
@@ -254,7 +358,12 @@ function App() {
       </main>
 
       {/* Render AudioPlayer globally */}
-      <AudioPlayer audioSrc={audioSrc} onTimeUpdate={handleTimeUpdate} />
+      <AudioPlayer 
+        audioSrc={audioSrc} 
+        onTimeUpdate={handleTimeUpdate} 
+        onSetTimestamp={handleSetTimestamp}
+        isLineSelected={selectedLineIndex !== null}
+      />
     </div>
   );
 }

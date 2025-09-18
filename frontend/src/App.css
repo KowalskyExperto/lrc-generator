@@ -231,39 +231,61 @@
 
 /* --- Column Specific Styles --- */
 
-/* Narrow timestamp columns */
-.lyrics-editor__table th:nth-child(-n+3),
-.lyrics-editor__table td:nth-child(-n+3) {
-  width: 55px;
+/* Centered columns: Select, Timestamps, Choice, Actions */
+.lyrics-editor__table th:nth-child(1),
+.lyrics-editor__table td:nth-child(1),
+.lyrics-editor__table th:nth-child(2),
+.lyrics-editor__table td:nth-child(2),
+.lyrics-editor__table th:nth-child(3),
+.lyrics-editor__table td:nth-child(3),
+.lyrics-editor__table th:nth-child(4),
+.lyrics-editor__table td:nth-child(4),
+.lyrics-editor__table th:nth-child(7),
+.lyrics-editor__table td:nth-child(7),
+.lyrics-editor__table th:nth-child(9),
+.lyrics-editor__table td:nth-child(9) {
   text-align: center;
 }
 
-.lyrics-editor__table td:nth-child(-n+3) .lyrics-editor__input {
+/* Center-align timestamp inputs */
+.lyrics-editor__table td:nth-child(2) .lyrics-editor__input,
+.lyrics-editor__table td:nth-child(3) .lyrics-editor__input,
+.lyrics-editor__table td:nth-child(4) .lyrics-editor__input {
   text-align: center;
 }
 
-/* Autosize Japanese column */
+/* Narrow columns with fixed widths */
+.lyrics-editor__table th:nth-child(1),
+.lyrics-editor__table td:nth-child(1) {
+  width: 0.75rem; /* Select (radio) */
+}
+
+.lyrics-editor__table th:nth-child(2),
+.lyrics-editor__table td:nth-child(2),
+.lyrics-editor__table th:nth-child(3),
+.lyrics-editor__table td:nth-child(3) {
+  width: 1.5rem; /* Minutes/Seconds (2 digits) */
+}
+
 .lyrics-editor__table th:nth-child(4),
 .lyrics-editor__table td:nth-child(4) {
-  width: 1%;
-  white-space: nowrap;
+  width: 1.8rem; /* Milliseconds (3 digits) */
 }
 
-/* Center choice column */
-.lyrics-editor__table td:nth-child(6) {
-  text-align: center;
-}
-
-/* Autosize choice column */
-.lyrics-editor__table th:nth-child(6),
-.lyrics-editor__table td:nth-child(6) {
-  width: 1%;
-  white-space: nowrap;
-}
-
-/* Wrap long text in Romaji and Final Lyric columns */
+/* Autosize (no-wrap) columns: Japanese, Choice, Actions */
+.lyrics-editor__table th:nth-child(5),
 .lyrics-editor__table td:nth-child(5),
-.lyrics-editor__table td:nth-child(7) {
+.lyrics-editor__table th:nth-child(7),
+.lyrics-editor__table td:nth-child(7),
+.lyrics-editor__table th:nth-child(9),
+.lyrics-editor__table td:nth-child(9) {
+  width: 1%;
+  white-space: nowrap;
+}
+
+/* Wrapping columns: Romaji, Final Lyric */
+.lyrics-editor__table td:nth-child(6),
+.lyrics-editor__table td:nth-child(8) {
   white-space: normal;
   word-break: break-word;
 }
